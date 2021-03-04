@@ -15,6 +15,8 @@ jobs:
           go-version: '1.14' # The Go version to download (if necessary) and use.
       - run: make build_i386
       - run: make build_amd64
+      - name: "Zip Artifacts"
+        run: find ./out -name '*_*.exe' -exec zip '{}.zip' '{}' \;
       - name: Build Changelog
         id: github_release
         uses: mikepenz/release-changelog-builder-action@main
@@ -23,7 +25,7 @@ jobs:
       - uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "./out/*_*.exe"
+          artifacts: "./out/*_*.exe.zip"
           allowUpdates: true
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
