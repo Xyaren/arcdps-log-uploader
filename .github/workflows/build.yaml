@@ -4,11 +4,23 @@ jobs:
   checks:
     name: Build
     runs-on: ubuntu-20.04
+    env:
+      GO111MODULE: "on"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
           go-version: '1.14' # The Go version to download (if necessary) and use.
-      - run: make build
-        env:
-          GO111MODULE: "on"
+      - uses: actions/cache@v2
+        with:
+          # In order:
+          # * Module download cache
+          # * Build cache (Linux)
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - run: make build_amd64
+      - run: make build_i386

@@ -6,15 +6,16 @@ jobs:
   generate:
     name: Create release-artifacts
     runs-on: ubuntu-20.04
+    env:
+      GO111MODULE: "on"
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
           go-version: '1.14' # The Go version to download (if necessary) and use.
-      - run: make build
-        env:
-          GO111MODULE: "on"
+      - run: make build_i386
+      - run: make build_amd64
       - name: Upload the artifacts
         uses: skx/github-action-publish-binaries@master
         env:
