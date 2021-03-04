@@ -20,6 +20,8 @@ jobs:
       - name: Build Changelog
         id: github_release
         uses: mikepenz/release-changelog-builder-action@main
+        with:
+          commitMode: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: ncipollo/release-action@v1
@@ -27,6 +29,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: "./out/*_*.exe.zip"
           allowUpdates: true
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
           body: ${{steps.github_release.outputs.changelog}}
