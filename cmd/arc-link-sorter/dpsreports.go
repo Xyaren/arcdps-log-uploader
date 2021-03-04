@@ -37,9 +37,9 @@ func UploadFile(path string) (*DpsReportResponse, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, _ := writer.CreateFormFile("file", filepath.Base(file.Name()))
-	io.Copy(part, file)
-	writer.Close()
-	file.Close()
+	_, _ = io.Copy(part, file)
+	_ = writer.Close()
+	_ = file.Close()
 
 	req, err := http.NewRequest(http.MethodPost, url, body)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
@@ -48,7 +48,7 @@ func UploadFile(path string) (*DpsReportResponse, error) {
 		log.Fatal(err)
 	}
 
-	sem.Acquire(context.Background(), 1)
+	_ = sem.Acquire(context.Background(), 1)
 	defer sem.Release(1)
 
 	res, getErr := restClient.Do(req)

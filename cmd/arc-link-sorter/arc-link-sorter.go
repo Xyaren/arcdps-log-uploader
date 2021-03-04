@@ -16,10 +16,6 @@ type ArcLog struct {
 	report  *DpsReportResponse
 }
 
-func refresh() {
-
-}
-
 var refreshTextArea func() = nil
 
 func main() {
