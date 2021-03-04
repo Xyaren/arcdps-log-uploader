@@ -16,7 +16,7 @@ jobs:
       - run: make build_i386
       - run: make build_amd64
       - name: "Zip Artifacts"
-        run: find ./out -name '*_*.exe' -exec zip '{}.zip' '{}' \;
+        run: find ./out -name '*_*.exe' -exec zip -D '{}.zip' '{}' \;
       - name: Build Changelog
         id: github_release
         uses: mikepenz/release-changelog-builder-action@main
