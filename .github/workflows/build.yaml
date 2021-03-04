@@ -1,8 +1,8 @@
 on: push
-name: Build Application
+name: Build
 jobs:
   checks:
-    name: run
+    name: Build
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
