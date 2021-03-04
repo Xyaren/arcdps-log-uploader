@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -30,6 +31,11 @@ var sem = semaphore.NewWeighted(int64(10))
 var restClient = http.Client{}
 
 func UploadFile(path string) (*DpsReportResponse, error) {
+	filename := filepath.Base(path)
+	logger := log.WithField("filename", filename)
+
+	logger.Info("Uploading File ", path)
+
 	url := "https://dps.report/uploadContent?json=1&generator=ei"
 
 	file, _ := os.Open(path)
@@ -45,7 +51,7 @@ func UploadFile(path string) (*DpsReportResponse, error) {
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	_ = sem.Acquire(context.Background(), 1)
@@ -53,7 +59,11 @@ func UploadFile(path string) (*DpsReportResponse, error) {
 
 	res, getErr := restClient.Do(req)
 	if getErr != nil {
-		log.Fatal(getErr)
+		logger.Fatal(getErr)
+	}
+	if res.StatusCode != 200 {
+		logger.Errorf("dps.report responded with status %v %v", res.StatusCode, res.Status)
+		return nil, fmt.Errorf("upload failed: %v", res.Status)
 	}
 
 	if res.Body != nil {
@@ -62,13 +72,14 @@ func UploadFile(path string) (*DpsReportResponse, error) {
 
 	responseBody, readErr := ioutil.ReadAll(res.Body)
 	if readErr != nil {
-		log.Fatal(readErr)
+		logger.Fatal(readErr)
 	}
 
 	dpsReportResponse := DpsReportResponse{}
 	jsonErr := json.Unmarshal(responseBody, &dpsReportResponse)
 	if jsonErr != nil {
-		log.Fatal(jsonErr, responseBody)
+		logger.Errorf("Could not unmarshal json response due to: %s \n Response: \n %s", jsonErr, string(responseBody))
+		return nil, fmt.Errorf("could not read dps.report response %v", jsonErr)
 	}
 
 	return &dpsReportResponse, nil
