@@ -1,13 +1,12 @@
+name: Release
 on:
-  release:
-    types: [created]
-name: Handle Release
+  push:
+    tags:
+      - 'v*'
 jobs:
-  generate:
-    name: Create release-artifacts
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-20.04
-    env:
-      GO111MODULE: "on"
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v2
@@ -16,9 +15,16 @@ jobs:
           go-version: '1.14' # The Go version to download (if necessary) and use.
       - run: make build_i386
       - run: make build_amd64
-      - name: Upload the artifacts
-        uses: skx/github-action-publish-binaries@master
+      - name: Build Changelog
+        id: github_release
+        uses: mikepenz/release-changelog-builder-action@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ncipollo/release-action@v1
         with:
-          args: './out/*_*.exe'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "./out/*_*.exe"
+          allowUpdates: true
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          body: ${{steps.github_release.outputs.changelog}}
