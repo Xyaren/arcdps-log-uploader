@@ -1,4 +1,7 @@
-build: build_rsrc build_amd64 build_386
+build: download_modules build_rsrc build_amd64 build_386
+
+download_modules:
+	go get ./...
 
 build_amd64:
 	GOOS=windows GOARCH=amd64 go build -o ./out/arc-link-sorter_amd64.exe -ldflags="-H windowsgui" -i ./cmd/arc-link-sorter
