@@ -43,10 +43,6 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano())
 	model = new(ArcLogModel)
-	model.sortColumn = 3
-	model.sortOrder = walk.SortAscending
-	model.PublishRowsReset()
-	model.Sort(model.sortColumn, model.sortOrder)
 
 	refreshTextArea = func() {
 		output := generateMessageText(model.items)
