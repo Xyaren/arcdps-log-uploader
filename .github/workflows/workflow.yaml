@@ -12,8 +12,3 @@ jobs:
       - run: make build
         env:
           GO111MODULE: "on"
-      - uses: actions/upload-artifact@v2
-        with:
-          name: arc-loc-uploader.exe
-          path: ./out/arc-link-sorter.exe
-
