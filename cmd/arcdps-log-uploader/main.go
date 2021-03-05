@@ -51,7 +51,7 @@ func main() {
 	var err error
 
 	_, err = MainWindow{
-		Title:   "ArcDPS Log to Discord Formatter",
+		Title:   "Arcdps Log Uploader & Formatter",
 		MinSize: Size{Width: 900, Height: 200},
 		Size:    Size{Width: 1120, Height: 800},
 		Layout:  Grid{Columns: 1},
@@ -61,12 +61,13 @@ func main() {
 		Icon: 2,
 		Children: []Widget{
 			Composite{
-				Layout:             HBox{MarginsZero: true, Spacing: 2},
+				Layout:             VBox{MarginsZero: true, Spacing: 2},
 				StretchFactor:      0,
 				AlwaysConsumeSpace: false,
 				Name:               "Header",
 				Children: []Widget{
-					Label{Text: "1. Drop the arcdps log files into this window. - 2. Wait until the logs are uploaded. - 3. Optional: Deselect logs if desired. - 4. Copy the Text from the right panel into discord."},
+					LinkLabel{Text: `1. Drop the arcdps log files into this window. - 2. Wait until the logs are uploaded to <a href="https://dps.report/">dps.report</a> - 3. Optional: Deselect logs if desired. - 4. Copy the Text from the right panel into discord.`, OnLinkActivated: openLink},
+					Label{Text: "If you are using Windows 10, I highly recommend enabling log compression in arcdps options."},
 				},
 			},
 			//TextEdit{AssignTo: &filesTextEdit},
@@ -149,9 +150,7 @@ func main() {
 				Name:               "Footer",
 				Children: []Widget{
 					LinkLabel{Text: `New Releases, Issue Tracker and Source Code at <a href="https://github.com/Xyaren/arcdps-log-uploader">https://github.com/Xyaren/arcdps-log-uploader</a>`,
-						OnLinkActivated: func(link *walk.LinkLabelLink) {
-							openBrowser(link.URL())
-						},
+						OnLinkActivated: openLink,
 					},
 					HSpacer{StretchFactor: 2},
 					Label{Text: "© Xyaren", Enabled: false},
@@ -163,6 +162,10 @@ func main() {
 		panic(err)
 	}
 	log.Info("Bye")
+}
+
+func openLink(link *walk.LinkLabelLink) {
+	openBrowser(link.URL())
 }
 
 func setupLogging() {
