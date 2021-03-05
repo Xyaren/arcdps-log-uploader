@@ -8,4 +8,12 @@
 An easy to use [arcdps](https://www.deltaconnected.com/arcdps/) log uploader, that outputs a template for posting the
 resulting log links to [Discord](https://discord.com/).
 
+### Screenshot
+
 ![Screenshot](https://raw.githubusercontent.com/Xyaren/arcdps-log-uploader/master/other/screenshot.png)
+*GUI of the application*
+
+### Download
+
+Downloadable binaries are available from the [Releases](https://github.com/Xyaren/arcdps-log-uploader/releases) page.
+> ⚠️ This Project is in an experimental stage. Expect bugs and program crashes.
