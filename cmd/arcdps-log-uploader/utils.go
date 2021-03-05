@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"github.com/lxn/walk"
+	log "github.com/sirupsen/logrus"
+	"os"
 	"os/exec"
 	"runtime"
 )
@@ -21,6 +23,18 @@ func openBrowser(url string) {
 		err = fmt.Errorf("unsupported platform")
 	}
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+	}
+}
+
+func setupLogging() {
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true, PadLevelText: true})
+}
+
+func copyToClipboard(text string) {
+	if err := walk.Clipboard().SetText(text); err != nil {
+		log.Print("Copy: ", err)
 	}
 }

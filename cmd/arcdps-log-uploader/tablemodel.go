@@ -160,3 +160,12 @@ func (m ArcLogModel) IndexOf(item *ArcLog) int {
 	}
 	return -1
 }
+
+func fileAlreadyInList(model *ArcLogModel, file string) (int, *ArcLog) {
+	for i, item := range model.items {
+		if item.file == file {
+			return i, item
+		}
+	}
+	return -1, nil
+}

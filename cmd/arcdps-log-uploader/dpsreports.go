@@ -30,7 +30,7 @@ type DpsReportResponse struct {
 var sem = semaphore.NewWeighted(int64(10))
 var restClient = http.Client{}
 
-func UploadFile(path string) (*DpsReportResponse, error) {
+func uploadFile(path string) (*DpsReportResponse, error) {
 	filename := filepath.Base(path)
 	logger := log.WithField("filename", filename)
 
@@ -38,23 +38,37 @@ func UploadFile(path string) (*DpsReportResponse, error) {
 
 	url := "https://dps.report/uploadContent?json=1&generator=ei"
 
-	file, _ := os.Open(path)
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, _ := writer.CreateFormFile("file", filepath.Base(file.Name()))
-	_, _ = io.Copy(part, file)
-	_ = writer.Close()
-	_ = file.Close()
-
-	req, err := http.NewRequest(http.MethodPost, url, body)
-	req.Header.Add("Content-Type", writer.FormDataContentType())
-
+	part, err := writer.CreateFormFile("file", filepath.Base(file.Name()))
+	_, err = io.Copy(part, file)
 	if err != nil {
-		logger.Fatal(err)
+		return nil, err
+	}
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+	err = file.Close()
+	if err != nil {
+		return nil, err
 	}
 
-	_ = sem.Acquire(context.Background(), 1)
+	req, err := http.NewRequest(http.MethodPost, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	err = sem.Acquire(context.Background(), 1)
+	if err != nil {
+		return nil, err
+	}
 	defer sem.Release(1)
 
 	res, getErr := restClient.Do(req)
@@ -67,6 +81,7 @@ func UploadFile(path string) (*DpsReportResponse, error) {
 	}
 
 	if res.Body != nil {
+		//goland:noinspection ALL
 		defer res.Body.Close()
 	}
 
