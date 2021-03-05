@@ -30,3 +30,4 @@ jobs:
           artifacts: "./out/*_*.exe.zip"
           allowUpdates: true
           body: ${{steps.github_release.outputs.changelog}}
+          prerelease : true
