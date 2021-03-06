@@ -46,6 +46,9 @@ func uploadFile(path string) (*DpsReportResponse, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("file", filepath.Base(file.Name()))
+	if err != nil {
+		return nil, err
+	}
 	_, err = io.Copy(part, file)
 	if err != nil {
 		return nil, err
