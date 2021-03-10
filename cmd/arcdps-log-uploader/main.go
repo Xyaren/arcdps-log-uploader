@@ -29,8 +29,5 @@ func start() {
 
 func runningWithAdminPrivileges() bool {
 	_, err := os.Open("\\\\.\\PHYSICALDRIVE0")
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
