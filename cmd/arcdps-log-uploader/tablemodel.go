@@ -101,10 +101,17 @@ func (m *ArcLogModel) Value(row, col int) interface{} {
 		},
 		func(item *ArcLog) interface{} {
 			switch item.status {
-			case Uploaded:
-				return "Uploaded"
 			case Outstanding:
 				return "Outstanding"
+			case WaitingInQueue:
+				return "Waiting (Queue)"
+			case WaitingRateLimitingHard:
+			case WaitingRateLimiting:
+				return "Waiting (Rate Limit)"
+			case Uploading:
+				return "Uploading"
+			case Done:
+				return "Done"
 			case Error:
 				return fmt.Sprintf("Error (%v)", item.errorMessage)
 			}
@@ -142,7 +149,7 @@ func (m *ArcLogModel) Checked(row int) bool {
 func (m *ArcLogModel) SetChecked(row int, checked bool) error {
 	item := m.items[row]
 	if checked {
-		if item.status == Uploaded {
+		if item.status == Done {
 			item.checked = checked
 			refreshTextArea()
 		}

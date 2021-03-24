@@ -4,7 +4,11 @@ type LogStatus int
 
 const (
 	Outstanding LogStatus = iota
-	Uploaded
+	WaitingInQueue
+	WaitingRateLimiting
+	WaitingRateLimitingHard
+	Uploading
+	Done
 	Error
 )
 

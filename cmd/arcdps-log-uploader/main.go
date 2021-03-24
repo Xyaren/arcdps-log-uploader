@@ -21,10 +21,14 @@ func main() {
 }
 
 func start() {
+	startWorkerGroup()
+
 	var err = startUi()
 	if err != nil {
 		panic(err)
 	}
+
+	closeQueue()
 }
 
 func runningWithAdminPrivileges() bool {
