@@ -207,16 +207,6 @@ func checkBrowsable(tv *walk.TableView, model *ArcLogModel) bool {
 	return false
 }
 
-func createWindow(window MainWindow, err error) (*walk.MainWindow, error) {
-	var w *walk.MainWindow
-	window.AssignTo = &w
-	err = window.Create()
-	if err != nil {
-		panic(err)
-	}
-	return w, err
-}
-
 func onFilesDrop(files []string, model *ArcLogModel, prog *walk.ProgressBar, outputTextArea *walk.TextEdit) {
 	for _, file := range files {
 

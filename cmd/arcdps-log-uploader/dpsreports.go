@@ -136,7 +136,7 @@ func doRequestInternal(callback func(status LogStatus), path string, logger *log
 func waitUntilUnbanned() {
 	if rateLimitedUntil != nil {
 		if rateLimitedUntil.After(time.Now()) {
-			sub := rateLimitedUntil.Sub(time.Now())
+			sub := time.Until(*rateLimitedUntil)
 			log.Debugf("Waiting to be unblocked (in %v)", sub)
 			<-time.After(sub)
 		}
