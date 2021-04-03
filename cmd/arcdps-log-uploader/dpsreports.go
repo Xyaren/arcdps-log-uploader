@@ -2,10 +2,9 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/time/rate"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -16,6 +15,9 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
 )
 
 type Encounter struct {
@@ -23,7 +25,7 @@ type Encounter struct {
 }
 
 type DpsReportResponse struct {
-	Id            string    `json:"id"`
+	ID            string    `json:"id"`
 	Error         string    `json:"error"`
 	Permalink     string    `json:"permalink"`
 	Encounter     Encounter `json:"encounter"`
@@ -31,7 +33,7 @@ type DpsReportResponse struct {
 }
 
 var client = NewRateLimitedClient(rate.NewLimiter(rate.Every(10*time.Second), 45))
-var rateLimitedUntil *time.Time = nil
+var rateLimitedUntil *time.Time
 
 var uploadQueue = make(chan QueueEntry, 1000)
 var wg sync.WaitGroup
@@ -48,11 +50,6 @@ type QueueEntry struct {
 	onChange func()
 }
 
-//func createRateLimiter() *rate.Limiter {
-//	//var interval time.Duration = time.Duration((1/5)*1000) * time.Millisecond
-//	return
-//}
-
 func startWorkerGroup() {
 	// start the worker
 	for i := 0; i < 5; i++ {
@@ -67,7 +64,6 @@ func closeQueue() {
 
 func worker(jobChan <-chan QueueEntry) {
 	for job := range jobChan {
-
 		options := job.options
 		file := job.arcLog.file
 
@@ -97,17 +93,13 @@ func uploadFile(path string, options *UploadOptions, callback func(status LogSta
 	jsonErr := json.Unmarshal(responseBody, &dpsReportResponse)
 	if jsonErr != nil {
 		logger.Errorf("Could not unmarshal json response due to: %s \n Response: \n %s", jsonErr, string(responseBody))
-		return nil, fmt.Errorf("could not read dps.report response %v", jsonErr)
+		return nil, fmt.Errorf("could not read dps.report response %w", jsonErr)
 	}
 
 	return &dpsReportResponse, nil
-
 }
 
 func doRequest(callback func(status LogStatus), path string, options *UploadOptions, logger *log.Entry) ([]byte, error) {
-	//sem.Acquire(context.Background(), 1)
-	//defer sem.Release(1) // release semaphore later
-
 	return doRequestInternal(callback, path, options, logger)
 }
 
@@ -118,6 +110,7 @@ func doRequestInternal(callback func(status LogStatus), path string, options *Up
 	}
 
 	callback(WaitingRateLimiting)
+
 	waitUntilUnbanned()
 
 	res, err := client.Do(req, func() { callback(Uploading) })
@@ -165,7 +158,7 @@ func waitUntilUnbanned() {
 }
 
 func buildRequest(path string, options *UploadOptions) (*http.Request, error) {
-	requestUrl, urlErr := buildUrl(options)
+	requestURL, urlErr := buildURL(options)
 	if urlErr != nil {
 		return nil, urlErr
 	}
@@ -194,7 +187,7 @@ func buildRequest(path string, options *UploadOptions) (*http.Request, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, requestUrl.String(), body)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, requestURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +195,7 @@ func buildRequest(path string, options *UploadOptions) (*http.Request, error) {
 	return req, nil
 }
 
-func buildUrl(options *UploadOptions) (*url.URL, error) {
+func buildURL(options *UploadOptions) (*url.URL, error) {
 	u, err := url.Parse("https://dps.report/uploadContent?json=1&generator=ei")
 	if err != nil {
 		log.Fatal(err)

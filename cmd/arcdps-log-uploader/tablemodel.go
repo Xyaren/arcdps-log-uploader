@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/lxn/walk"
 	"path/filepath"
 	"sort"
 	"time"
+
+	"github.com/lxn/walk"
 )
 
 type ArcLogModel struct {
@@ -80,12 +81,13 @@ func (m *ArcLogModel) Sort(col int, order walk.SortOrder) error {
 	return m.SorterBase.Sort(col, order)
 }
 
-func modelUnavailable(a *ArcLog, b *ArcLog) (bool, bool) {
-	if a.report == nil && b.report == nil {
+func modelUnavailable(a, b *ArcLog) (result, oneOrMoreIsMissing bool) {
+	switch {
+	case a.report == nil && b.report == nil:
 		return false, true
-	} else if a.report == nil {
+	case a.report == nil:
 		return false, true
-	} else if b.report == nil {
+	case b.report == nil:
 		return true, true
 	}
 	return false, false
@@ -150,7 +152,7 @@ func (m *ArcLogModel) Value(row, col int) interface{} {
 			case ForcedFalse:
 				return "Forced Off"
 			}
-			return "Unknown"
+			return ""
 		},
 		func(item *ArcLog) interface{} {
 			if item.anonymized {
@@ -174,6 +176,7 @@ func (m *ArcLogModel) Checked(row int) bool {
 }
 
 // Called by the TableView when the user toggled the check box of a given row.
+//nolint:unparam
 func (m *ArcLogModel) SetChecked(row int, checked bool) error {
 	item := m.items[row]
 	if checked {
@@ -187,7 +190,7 @@ func (m *ArcLogModel) SetChecked(row int, checked bool) error {
 	return nil
 }
 
-func (m ArcLogModel) IndexOf(item *ArcLog) int {
+func (m *ArcLogModel) IndexOf(item *ArcLog) int {
 	for i, v := range m.items {
 		if v == item {
 			return i

@@ -8,12 +8,13 @@ import (
 
 type jsonTime time.Time
 
+//nolint:unparam
 func (t jsonTime) MarshalJSON() ([]byte, error) {
 	return []byte(strconv.FormatInt(time.Time(t).Unix(), 10)), nil
 }
 
 func (t *jsonTime) UnmarshalJSON(s []byte) (err error) {
-	r := strings.Replace(string(s), `"`, ``, -1)
+	r := strings.ReplaceAll(string(s), `"`, ``)
 
 	q, err := strconv.ParseInt(r, 10, 64)
 	if err != nil {

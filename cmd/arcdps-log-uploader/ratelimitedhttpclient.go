@@ -2,17 +2,18 @@ package main
 
 import (
 	"context"
-	"golang.org/x/time/rate"
 	"net/http"
+
+	"golang.org/x/time/rate"
 )
 
-//RLHTTPClient Rate Limited HTTP Client
+// RLHTTPClient Rate Limited HTTP Client.
 type RLHTTPClient struct {
 	client      *http.Client
 	RateLimiter *rate.Limiter
 }
 
-//Do dispatches the HTTP request to the network
+// Do dispatches the HTTP request to the network.
 func (c *RLHTTPClient) Do(req *http.Request, activationCallback func()) (*http.Response, error) {
 	// Comment out the below 5 lines to turn off ratelimiting
 	ctx := context.Background()
@@ -28,7 +29,7 @@ func (c *RLHTTPClient) Do(req *http.Request, activationCallback func()) (*http.R
 	return resp, nil
 }
 
-//NewRateLimitedClient return http client with a rateLimiter
+// NewRateLimitedClient return http client with a rateLimiter.
 func NewRateLimitedClient(rl *rate.Limiter) *RLHTTPClient {
 	c := &RLHTTPClient{
 		client:      http.DefaultClient,

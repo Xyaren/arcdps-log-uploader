@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/lxn/walk"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"runtime"
+
+	"github.com/lxn/walk"
+	log "github.com/sirupsen/logrus"
 )
 
 func openBrowser(url string) {

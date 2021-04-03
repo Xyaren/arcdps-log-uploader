@@ -3,9 +3,10 @@
 package main
 
 import (
+	"os"
+
 	"github.com/lxn/walk"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 func main() {
@@ -13,7 +14,10 @@ func main() {
 	log.Info("Starting")
 
 	if runningWithAdminPrivileges() {
-		walk.MsgBox(nil, "Administrator mode is not supported", "Due to windows security constraints, drag & drop is not supported for applications running in administrative mode.", walk.MsgBoxOK|walk.MsgBoxIconWarning|walk.MsgBoxTaskModal)
+		walk.MsgBox(nil, "Administrator mode is not supported",
+			"Due to windows security constraints, drag & drop "+
+				"is not supported for applications running in administrative mode.",
+			walk.MsgBoxOK|walk.MsgBoxIconWarning|walk.MsgBoxTaskModal)
 	} else {
 		start()
 	}

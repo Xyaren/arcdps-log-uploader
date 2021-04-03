@@ -1,15 +1,17 @@
 package main
 
+//goland:noinspection GoLinterLocal
 import (
 	"fmt"
-	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/lxn/walk"
+	"github.com/lxn/walk/declarative"
+	log "github.com/sirupsen/logrus"
 )
 
 func openLink(link *walk.LinkLabelLink) {
@@ -18,9 +20,9 @@ func openLink(link *walk.LinkLabelLink) {
 
 var logFilePattern = regexp.MustCompile(`(?m).+\.(evtc(\.zip)?|zevtc)$`)
 
-var refreshTextArea func() = nil
+var refreshTextArea func()
 
-var changeCallback func(arcLog *ArcLog) = nil
+var changeCallback func(arcLog *ArcLog)
 
 type Options struct {
 	DetailedWvw bool
@@ -29,6 +31,7 @@ type Options struct {
 
 var options = new(Options)
 
+//nolint:funlen
 func startUI() error {
 	options.DetailedWvw = true
 
@@ -46,10 +49,10 @@ func startUI() error {
 	}
 
 	isBrowsableAllowed := walk.NewMutableCondition()
-	MustRegisterCondition("isBrowseAllowed", isBrowsableAllowed)
+	declarative.MustRegisterCondition("isBrowseAllowed", isBrowsableAllowed)
 
 	isRetryAllowed := walk.NewMutableCondition()
-	MustRegisterCondition("isRetryAllowed", isRetryAllowed)
+	declarative.MustRegisterCondition("isRetryAllowed", isRetryAllowed)
 
 	model = new(ArcLogModel)
 
@@ -59,59 +62,61 @@ func startUI() error {
 	}
 	var err error
 
-	window := MainWindow{
+	window := declarative.MainWindow{
 		Title:   "Arcdps Log Uploader & Formatter",
-		MinSize: Size{Width: 900, Height: 200},
-		Size:    Size{Width: 1300, Height: 800},
-		Layout:  Grid{Columns: 1},
+		MinSize: declarative.Size{Width: 900, Height: 200},
+		Size:    declarative.Size{Width: 1300, Height: 800},
+		Layout:  declarative.Grid{Columns: 1},
 		OnDropFiles: func(files []string) {
-			onDrop(files, model, prog, outputTextArea)
+			onDrop(files, model, prog)
 		},
 		Icon: 2,
-		Children: []Widget{
-			Composite{
-				Layout:             VBox{MarginsZero: true, Spacing: 2},
+		Children: []declarative.Widget{
+			declarative.Composite{
+				Layout:             declarative.VBox{MarginsZero: true, Spacing: 2},
 				StretchFactor:      0,
 				AlwaysConsumeSpace: false,
 				Name:               "Header",
-				Children: []Widget{
-					LinkLabel{Text: `1. Drop the arcdps log files into this window. - 2. Wait until the logs are uploaded to <a href="https://dps.report/">dps.report</a> - 3. Optional: Deselect logs if desired. - 4. Copy the Text from the right panel into discord.`, OnLinkActivated: openLink},
-					Label{Text: "If you are using Windows 10, I highly recommend enabling log compression in arcdps options."},
-					Label{Text: "Due to rate limiting, bulk uploading 40 or more logs at once can take quite a while."},
+				Children: []declarative.Widget{
+					declarative.LinkLabel{Text: "1. Drop the arcdps log files into this window.- " +
+						"2. Wait until the logs are uploaded to <a href=\"https://dps.report/\">dps.report</a> - " +
+						"3. Optional: Deselect logs if desired. - " +
+						"4. Copy the Text from the right panel into discord.", OnLinkActivated: openLink},
+					declarative.Label{Text: "If you are using Windows 10, I highly recommend enabling log compression in arcdps options."},
+					declarative.Label{Text: "Due to rate limiting, bulk uploading 40 or more logs at once can take quite a while."},
 				},
 			},
-			Composite{
-				Layout:             HBox{MarginsZero: true, Spacing: 20},
+			declarative.Composite{
+				Layout:             declarative.HBox{MarginsZero: true, Spacing: 20},
 				StretchFactor:      0,
 				AlwaysConsumeSpace: false,
 				Name:               "Options",
-				DataBinder: DataBinder{
+				DataBinder: declarative.DataBinder{
 					AssignTo:       &db,
 					Name:           "state",
 					DataSource:     options,
-					ErrorPresenter: ToolTipErrorPresenter{},
+					ErrorPresenter: declarative.ToolTipErrorPresenter{},
 					AutoSubmit:     true,
 				},
-				Children: []Widget{
-					CheckBox{
+				Children: []declarative.Widget{
+					declarative.CheckBox{
 						Name:        "DetailedLogs",
 						Text:        "Use Detailed WvW Logs if possible.",
 						ToolTipText: "Detailed WvW is currently not possible for large log files. They will fallback to non-detailed upload.",
-						Checked:     Bind("DetailedWvw"),
+						Checked:     declarative.Bind("DetailedWvw"),
 					},
-					CheckBox{
+					declarative.CheckBox{
 						Name:        "AnonymousLogs",
 						Text:        "Enable anonymized Reports",
 						ToolTipText: "Replace player names in report.",
-						Checked:     Bind("Anonymous"),
+						Checked:     declarative.Bind("Anonymous"),
 					},
 				},
 			},
-			//TextEdit{AssignTo: &filesTextEdit},
-			HSplitter{
+			declarative.HSplitter{
 				StretchFactor: 150,
-				Children: []Widget{
-					TableView{
+				Children: []declarative.Widget{
+					declarative.TableView{
 						Name:             "tv",
 						StretchFactor:    18,
 						AssignTo:         &tv,
@@ -119,10 +124,10 @@ func startUI() error {
 						CheckBoxes:       true,
 						ColumnsOrderable: true,
 						MultiSelection:   true,
-						ContextMenuItems: []MenuItem{
-							Action{
+						ContextMenuItems: []declarative.MenuItem{
+							declarative.Action{
 								Text:    "Retry",
-								Enabled: Bind("isRetryAllowed"),
+								Enabled: declarative.Bind("isRetryAllowed"),
 								OnTriggered: func() {
 									selectedIndexes := tv.SelectedIndexes()
 									for _, index := range selectedIndexes {
@@ -134,9 +139,9 @@ func startUI() error {
 									}
 								},
 							},
-							Action{
+							declarative.Action{
 								Text:    "Open Log in Browser",
-								Enabled: Bind("tv.SelectedCount == 1 && isBrowseAllowed"),
+								Enabled: declarative.Bind("tv.SelectedCount == 1 && isBrowseAllowed"),
 								OnTriggered: func() {
 									selectedIndexes := tv.SelectedIndexes()
 									arcLog := model.items[selectedIndexes[0]]
@@ -153,7 +158,7 @@ func startUI() error {
 								openBrowser(currentItem.report.Permalink)
 							}
 						},
-						Columns: []TableViewColumn{
+						Columns: []declarative.TableViewColumn{
 							{Title: "File", Width: 150},
 							{Title: "Status", Width: 85},
 							{Title: "Date", Format: "2006-01-02 15:04:05", Width: 120},
@@ -180,7 +185,7 @@ func startUI() error {
 							_ = isRetryAllowed.SetSatisfied(shouldRetryBeAllowed(tv, model))
 						},
 					},
-					TextEdit{
+					declarative.TextEdit{
 						StretchFactor: 10,
 						AssignTo:      &outputTextArea,
 						Text:          "",
@@ -191,35 +196,38 @@ func startUI() error {
 				},
 			},
 
-			Composite{
-				Layout: HBox{MarginsZero: true},
+			declarative.Composite{
+				Layout: declarative.HBox{MarginsZero: true},
 
 				StretchFactor: 1,
-				Children: []Widget{
-					ProgressBar{
+				Children: []declarative.Widget{
+					declarative.ProgressBar{
 						AssignTo: &prog,
 					},
-					PushButton{
+					declarative.PushButton{
 						AssignTo: &button,
 						Text:     "Copy to Clipboard",
 						OnClicked: func() {
 							go copyToClipboard(outputTextArea.Text())
 						},
-						MinSize: Size{Width: 150},
+						MinSize: declarative.Size{Width: 150},
 					},
 				},
 			},
-			Composite{
-				Layout:             HBox{MarginsZero: true, Spacing: 2},
+			declarative.Composite{
+				Layout:             declarative.HBox{MarginsZero: true, Spacing: 2},
 				StretchFactor:      -1,
 				AlwaysConsumeSpace: false,
 				Name:               "Footer",
-				Children: []Widget{
-					LinkLabel{Text: `New Releases, Issue Tracker and Source Code at <a href="https://github.com/Xyaren/arcdps-log-uploader">https://github.com/Xyaren/arcdps-log-uploader</a>`,
+				Children: []declarative.Widget{
+					declarative.LinkLabel{Text: "New Releases, Issue Tracker and Source Code at " +
+						"<a href=\"https://github.com/Xyaren/arcdps-log-uploader\">" +
+						"https://github.com/Xyaren/arcdps-log-uploader" +
+						"</a>",
 						OnLinkActivated: openLink,
 					},
-					HSpacer{StretchFactor: 2},
-					Label{Text: "© Xyaren", Enabled: false},
+					declarative.HSpacer{StretchFactor: 2},
+					declarative.Label{Text: "© Xyaren", Enabled: false},
 				},
 			},
 		},
@@ -230,7 +238,7 @@ func startUI() error {
 }
 
 func shouldRetryBeAllowed(tv *walk.TableView, model *ArcLogModel) bool {
-	if len(tv.SelectedIndexes()) <= 0 {
+	if len(tv.SelectedIndexes()) == 0 {
 		return false
 	}
 	indexes := tv.SelectedIndexes()
@@ -252,21 +260,19 @@ func checkBrowsable(tv *walk.TableView, model *ArcLogModel) bool {
 	return false
 }
 
-func onDrop(files []string, model *ArcLogModel, prog *walk.ProgressBar, outputTextArea *walk.TextEdit) {
+func onDrop(files []string, model *ArcLogModel, prog *walk.ProgressBar) {
 	for _, file := range files {
-
-		//handle folder
+		// handle folder
 		if info, err := os.Stat(file); err == nil && info.IsDir() {
 			foundFiles, _ := onFolderDrop(file)
 			if len(foundFiles) > 0 {
-				onDrop(foundFiles, model, prog, outputTextArea)
+				onDrop(foundFiles, model, prog)
 			}
 		}
 
 		filename := strings.ToLower(filepath.Base(file))
 		if logFilePattern.MatchString(filename) {
-
-			//handle if item already exists in list
+			// handle if item already exists in list
 			possibleIndex, existingItem := fileAlreadyInList(model, file)
 			if possibleIndex >= 0 {
 				if existingItem.report == nil {
@@ -289,7 +295,6 @@ func onDrop(files []string, model *ArcLogModel, prog *walk.ProgressBar, outputTe
 		}
 	}
 	updateProgress(model, prog)
-	//model.Sort(model.sortColumn,model.sortOrder)
 }
 
 func onFolderDrop(file string) ([]string, error) {
@@ -363,7 +368,7 @@ func updateProgress(model *ArcLogModel, progressBar *walk.ProgressBar) {
 	for _, v := range model.items {
 		if v.status == Done || v.status == Error {
 			// Append desired values to slice
-			count = count + 1
+			count++
 		}
 	}
 	progressBar.SetValue(count)
