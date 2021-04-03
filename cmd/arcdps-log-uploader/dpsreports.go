@@ -75,7 +75,7 @@ func worker(jobChan <-chan QueueEntry) {
 			job.arcLog.status = status
 			job.onChange()
 		})
-		if job.arcLog.detailed == True && options.detailedWvw == false {
+		if job.arcLog.detailed == True && !options.detailedWvw {
 			job.arcLog.detailed = ForcedFalse
 		}
 		job.onDone(report, err)
@@ -165,7 +165,10 @@ func waitUntilUnbanned() {
 }
 
 func buildRequest(path string, options *UploadOptions) (*http.Request, error) {
-	url, err := buildUrl(options)
+	requestUrl, urlErr := buildUrl(options)
+	if urlErr != nil {
+		return nil, urlErr
+	}
 
 	file, err := os.Open(path)
 	if err != nil {
@@ -191,7 +194,7 @@ func buildRequest(path string, options *UploadOptions) (*http.Request, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url.String(), body)
+	req, err := http.NewRequest(http.MethodPost, requestUrl.String(), body)
 	if err != nil {
 		return nil, err
 	}

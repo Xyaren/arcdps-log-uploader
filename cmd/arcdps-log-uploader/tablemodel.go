@@ -155,9 +155,8 @@ func (m *ArcLogModel) Value(row, col int) interface{} {
 		func(item *ArcLog) interface{} {
 			if item.anonymized {
 				return checkmark
-			} else {
-				return cross
 			}
+			return cross
 		},
 		func(item *ArcLog) interface{} {
 			if item.report != nil {

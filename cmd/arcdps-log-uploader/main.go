@@ -23,7 +23,7 @@ func main() {
 func start() {
 	startWorkerGroup()
 
-	var err = startUi()
+	var err = startUI()
 	if err != nil {
 		panic(err)
 	}

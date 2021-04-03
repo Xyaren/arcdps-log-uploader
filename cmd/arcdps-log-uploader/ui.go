@@ -29,7 +29,7 @@ type Options struct {
 
 var options = new(Options)
 
-func startUi() error {
+func startUI() error {
 	options.DetailedWvw = true
 
 	var tv *walk.TableView
@@ -257,8 +257,8 @@ func onDrop(files []string, model *ArcLogModel, prog *walk.ProgressBar, outputTe
 
 		//handle folder
 		if info, err := os.Stat(file); err == nil && info.IsDir() {
-			foundFiles := onFolderDrop(file)
-			if foundFiles != nil && len(foundFiles) > 0 {
+			foundFiles, _ := onFolderDrop(file)
+			if len(foundFiles) > 0 {
 				onDrop(foundFiles, model, prog, outputTextArea)
 			}
 		}
@@ -292,15 +292,15 @@ func onDrop(files []string, model *ArcLogModel, prog *walk.ProgressBar, outputTe
 	//model.Sort(model.sortColumn,model.sortOrder)
 }
 
-func onFolderDrop(file string) []string {
+func onFolderDrop(file string) ([]string, error) {
 	var folderFiles []string
-	filepath.Walk(file, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(file, func(path string, info os.FileInfo, err error) error {
 		if path != file {
 			folderFiles = append(folderFiles, path)
 		}
 		return nil
 	})
-	return folderFiles
+	return folderFiles, err
 }
 
 func updateText(model *ArcLogModel, area *walk.TextEdit) {
