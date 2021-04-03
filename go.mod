@@ -3,6 +3,7 @@ module github.com/xyaren/arcdps-log-uploader
 go 1.15
 
 require (
+	github.com/jinzhu/copier v0.2.8
 	github.com/lxn/walk v0.0.0-20210112085537-c389da54e794
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e // indirect
 	github.com/sirupsen/logrus v1.8.1

@@ -16,6 +16,11 @@ type ArcLogModel struct {
 	items      []*ArcLog
 }
 
+var (
+	checkmark = string([]byte{0xE2, 0x9C, 0x94})
+	cross     = string([]byte{0xE2, 0x9C, 0x96})
+)
+
 // Called by the TableView to sort the model.
 func (m *ArcLogModel) Sort(col int, order walk.SortOrder) error {
 	m.sortColumn, m.sortOrder = col, order
@@ -32,13 +37,6 @@ func (m *ArcLogModel) Sort(col int, order walk.SortOrder) error {
 			if oneIsMissing {
 				return comparisonResult
 			}
-			return a.report.Permalink < b.report.Permalink
-		},
-		func(a, b *ArcLog) bool {
-			comparisonResult, oneIsMissing := modelUnavailable(a, b)
-			if oneIsMissing {
-				return comparisonResult
-			}
 			return time.Time(a.report.EncounterTime).Before(time.Time(b.report.EncounterTime))
 		},
 		func(a, b *ArcLog) bool {
@@ -47,6 +45,19 @@ func (m *ArcLogModel) Sort(col int, order walk.SortOrder) error {
 				return comparisonResult
 			}
 			return a.report.Encounter.Duration < b.report.Encounter.Duration
+		},
+		func(a, b *ArcLog) bool {
+			return a.detailed < b.detailed
+		},
+		func(a, b *ArcLog) bool {
+			return a.anonymized && b.anonymized
+		},
+		func(a, b *ArcLog) bool {
+			comparisonResult, oneIsMissing := modelUnavailable(a, b)
+			if oneIsMissing {
+				return comparisonResult
+			}
+			return a.report.Permalink < b.report.Permalink
 		},
 	}
 
@@ -119,12 +130,6 @@ func (m *ArcLogModel) Value(row, col int) interface{} {
 		},
 		func(item *ArcLog) interface{} {
 			if item.report != nil {
-				return item.report.Permalink
-			}
-			return ""
-		},
-		func(item *ArcLog) interface{} {
-			if item.report != nil {
 				return time.Time(item.report.EncounterTime)
 			}
 			return ""
@@ -133,6 +138,30 @@ func (m *ArcLogModel) Value(row, col int) interface{} {
 			if item.report != nil {
 				out := time.Time{}.Add(time.Duration(item.report.Encounter.Duration) * time.Second)
 				return out.Format("04m 05s")
+			}
+			return ""
+		},
+		func(item *ArcLog) interface{} {
+			switch item.detailed {
+			case True:
+				return checkmark
+			case False:
+				return cross
+			case ForcedFalse:
+				return "Forced Off"
+			}
+			return "Unknown"
+		},
+		func(item *ArcLog) interface{} {
+			if item.anonymized {
+				return checkmark
+			} else {
+				return cross
+			}
+		},
+		func(item *ArcLog) interface{} {
+			if item.report != nil {
+				return item.report.Permalink
 			}
 			return ""
 		},

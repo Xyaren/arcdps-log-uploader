@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -32,12 +33,18 @@ type DpsReportResponse struct {
 var client = NewRateLimitedClient(rate.NewLimiter(rate.Every(10*time.Second), 45))
 var rateLimitedUntil *time.Time = nil
 
-var uploadQueue = make(chan QueueEntry, 10000)
+var uploadQueue = make(chan QueueEntry, 1000)
 var wg sync.WaitGroup
+
+type UploadOptions struct {
+	detailedWvw bool
+	anonymous   bool
+}
 
 type QueueEntry struct {
 	arcLog   *ArcLog
-	callback func(*DpsReportResponse, error)
+	options  *UploadOptions
+	onDone   func(*DpsReportResponse, error)
 	onChange func()
 }
 
@@ -59,22 +66,29 @@ func closeQueue() {
 }
 
 func worker(jobChan <-chan QueueEntry) {
-	for next := range jobChan {
-		report, err := uploadFile(next.arcLog.file, func(status LogStatus) {
-			next.arcLog.status = status
-			next.onChange()
+	for job := range jobChan {
+
+		options := job.options
+		file := job.arcLog.file
+
+		report, err := uploadFile(file, options, func(status LogStatus) {
+			job.arcLog.status = status
+			job.onChange()
 		})
-		next.callback(report, err)
+		if job.arcLog.detailed == True && options.detailedWvw == false {
+			job.arcLog.detailed = ForcedFalse
+		}
+		job.onDone(report, err)
 	}
 }
 
-func uploadFile(path string, callback func(status LogStatus)) (*DpsReportResponse, error) {
+func uploadFile(path string, options *UploadOptions, callback func(status LogStatus)) (*DpsReportResponse, error) {
 	filename := filepath.Base(path)
 	logger := log.WithField("filename", filename)
 
 	logger.Info("Uploading File ", path)
 
-	responseBody, err := doRequest(callback, path, logger)
+	responseBody, err := doRequest(callback, path, options, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -90,15 +104,15 @@ func uploadFile(path string, callback func(status LogStatus)) (*DpsReportRespons
 
 }
 
-func doRequest(callback func(status LogStatus), path string, logger *log.Entry) ([]byte, error) {
+func doRequest(callback func(status LogStatus), path string, options *UploadOptions, logger *log.Entry) ([]byte, error) {
 	//sem.Acquire(context.Background(), 1)
 	//defer sem.Release(1) // release semaphore later
 
-	return doRequestInternal(callback, path, logger)
+	return doRequestInternal(callback, path, options, logger)
 }
 
-func doRequestInternal(callback func(status LogStatus), path string, logger *log.Entry) ([]byte, error) {
-	req, err := buildRequest(path)
+func doRequestInternal(callback func(status LogStatus), path string, options *UploadOptions, logger *log.Entry) ([]byte, error) {
+	req, err := buildRequest(path, options)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +134,14 @@ func doRequestInternal(callback func(status LogStatus), path string, logger *log
 		freeTime := time.Now().Add(timeToUnban)
 		rateLimitedUntil = &freeTime
 		time.Sleep(timeToUnban)
-		return doRequestInternal(callback, path, logger)
+		return doRequestInternal(callback, path, options, logger)
+	}
+	if res.StatusCode == 500 {
+		if options.detailedWvw {
+			logger.Warnf("Upload failed due to server error. Trying again without detailed wvw")
+			options.detailedWvw = false
+			return doRequestInternal(callback, path, options, logger)
+		}
 	}
 	if res.StatusCode != 200 {
 		logger.Errorf("dps.report responded with status %v (%v). Header: %v", res.StatusCode, res.Status, res.Header)
@@ -143,8 +164,8 @@ func waitUntilUnbanned() {
 	}
 }
 
-func buildRequest(path string) (*http.Request, error) {
-	url := "https://dps.report/uploadContent?json=1&generator=ei"
+func buildRequest(path string, options *UploadOptions) (*http.Request, error) {
+	url, err := buildUrl(options)
 
 	file, err := os.Open(path)
 	if err != nil {
@@ -170,10 +191,32 @@ func buildRequest(path string) (*http.Request, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, body)
+	req, err := http.NewRequest(http.MethodPost, url.String(), body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	return req, nil
+}
+
+func buildUrl(options *UploadOptions) (*url.URL, error) {
+	u, err := url.Parse("https://dps.report/uploadContent?json=1&generator=ei")
+	if err != nil {
+		log.Fatal(err)
+	}
+	q := u.Query()
+
+	if options.detailedWvw {
+		q.Set("detailedwvw", "true")
+	} else {
+		q.Set("detailedwvw", "false")
+	}
+
+	if options.anonymous {
+		q.Set("anonymous", "true")
+	} else {
+		q.Set("anonymous", "false")
+	}
+	u.RawQuery = q.Encode()
+	return u, err
 }
