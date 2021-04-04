@@ -1,28 +1,36 @@
-package main
+package ui
 
 //goland:noinspection GoLinterLocal
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/lxn/walk"
 	"github.com/lxn/walk/declarative"
+	"github.com/lxn/win"
+	"github.com/rhysd/go-github-selfupdate/selfupdate"
 	log "github.com/sirupsen/logrus"
+	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/model"
+	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/utils"
 )
 
 func openLink(link *walk.LinkLabelLink) {
-	openBrowser(link.URL())
+	utils.OpenBrowser(link.URL())
 }
 
 var logFilePattern = regexp.MustCompile(`(?m).+\.(evtc(\.zip)?|zevtc)$`)
 
 var refreshTextArea func()
 
-var changeCallback func(arcLog *ArcLog)
+var changeCallback func(arcLog *model.ArcLog)
+var latestVersion *selfupdate.Release
 
 type Options struct {
 	DetailedWvw bool
@@ -32,20 +40,22 @@ type Options struct {
 var options = new(Options)
 
 //nolint:funlen
-func startUI() error {
+func StartUI() error {
 	options.DetailedWvw = true
 
+	var mainWindow *walk.MainWindow
 	var tv *walk.TableView
 	var prog *walk.ProgressBar
 	var button *walk.PushButton
 	var outputTextArea *walk.TextEdit
-	var model *ArcLogModel
+	var tableModel *ArcLogModel
 	var db *walk.DataBinder
+	var versionLinkLabel *walk.LinkLabel
 
-	changeCallback = func(arcLog *ArcLog) {
-		model.PublishRowChanged(model.IndexOf(arcLog))
-		updateProgress(model, prog)
-		updateText(model, outputTextArea)
+	changeCallback = func(arcLog *model.ArcLog) {
+		tableModel.PublishRowChanged(tableModel.IndexOf(arcLog))
+		updateProgress(tableModel, prog)
+		updateText(tableModel, outputTextArea)
 	}
 
 	isBrowsableAllowed := walk.NewMutableCondition()
@@ -54,21 +64,23 @@ func startUI() error {
 	isRetryAllowed := walk.NewMutableCondition()
 	declarative.MustRegisterCondition("isRetryAllowed", isRetryAllowed)
 
-	model = new(ArcLogModel)
+	tableModel = new(ArcLogModel)
 
 	refreshTextArea = func() {
-		output := generateMessageText(model.items)
+		output := generateMessageText(tableModel.items)
 		_ = outputTextArea.SetText(output)
 	}
-	var err error
+
+	go checkForUpdate(&versionLinkLabel)
 
 	window := declarative.MainWindow{
-		Title:   "Arcdps Log Uploader & Formatter",
-		MinSize: declarative.Size{Width: 900, Height: 200},
-		Size:    declarative.Size{Width: 1300, Height: 800},
-		Layout:  declarative.Grid{Columns: 1},
+		AssignTo: &mainWindow,
+		Title:    "ArcDps Log Uploader & Formatter",
+		MinSize:  declarative.Size{Width: 900, Height: 200},
+		Size:     declarative.Size{Width: 1300, Height: 800},
+		Layout:   declarative.Grid{Columns: 1},
 		OnDropFiles: func(files []string) {
-			onDrop(files, model, prog)
+			onDrop(files, tableModel, prog)
 		},
 		Icon: 2,
 		Children: []declarative.Widget{
@@ -131,8 +143,8 @@ func startUI() error {
 								OnTriggered: func() {
 									selectedIndexes := tv.SelectedIndexes()
 									for _, index := range selectedIndexes {
-										arcLog := model.items[index]
-										if arcLog.status == Error {
+										arcLog := tableModel.items[index]
+										if arcLog.Status == model.Error {
 											log.Debugf("Reqeue requested: %v", arcLog)
 											go queueUpload(arcLog)
 										}
@@ -144,8 +156,8 @@ func startUI() error {
 								Enabled: declarative.Bind("tv.SelectedCount == 1 && isBrowseAllowed"),
 								OnTriggered: func() {
 									selectedIndexes := tv.SelectedIndexes()
-									arcLog := model.items[selectedIndexes[0]]
-									go openBrowser(arcLog.report.Permalink)
+									arcLog := tableModel.items[selectedIndexes[0]]
+									go utils.OpenBrowser(arcLog.Report.Permalink)
 								},
 							},
 						},
@@ -153,9 +165,9 @@ func startUI() error {
 							if tv.CurrentIndex() < 0 {
 								return
 							}
-							currentItem := model.items[tv.CurrentIndex()]
-							if currentItem.report != nil {
-								openBrowser(currentItem.report.Permalink)
+							currentItem := tableModel.items[tv.CurrentIndex()]
+							if currentItem.Report != nil {
+								utils.OpenBrowser(currentItem.Report.Permalink)
 							}
 						},
 						Columns: []declarative.TableViewColumn{
@@ -168,9 +180,9 @@ func startUI() error {
 							{Title: "Link", Width: 260},
 						},
 						StyleCell: func(style *walk.CellStyle) {
-							item := model.items[style.Row()]
+							item := tableModel.items[style.Row()]
 
-							if item.checked {
+							if item.Checked {
 								if style.Row()%2 == 0 {
 									style.BackgroundColor = walk.RGB(159, 215, 255)
 								} else {
@@ -178,11 +190,11 @@ func startUI() error {
 								}
 							}
 						},
-						Model: model,
+						Model: tableModel,
 						OnSelectedIndexesChanged: func() {
 							fmt.Printf("SelectedIndexes: %v\n", tv.SelectedIndexes())
-							_ = isBrowsableAllowed.SetSatisfied(checkBrowsable(tv, model))
-							_ = isRetryAllowed.SetSatisfied(shouldRetryBeAllowed(tv, model))
+							_ = isBrowsableAllowed.SetSatisfied(checkBrowsable(tv, tableModel))
+							_ = isRetryAllowed.SetSatisfied(shouldRetryBeAllowed(tv, tableModel))
 						},
 					},
 					declarative.TextEdit{
@@ -208,93 +220,163 @@ func startUI() error {
 						AssignTo: &button,
 						Text:     "Copy to Clipboard",
 						OnClicked: func() {
-							go copyToClipboard(outputTextArea.Text())
+							go utils.CopyToClipboard(outputTextArea.Text())
 						},
 						MinSize: declarative.Size{Width: 150},
 					},
 				},
 			},
 			declarative.Composite{
-				Layout:             declarative.HBox{MarginsZero: true, Spacing: 2},
-				StretchFactor:      -1,
-				AlwaysConsumeSpace: false,
-				Name:               "Footer",
+				Layout: declarative.HBox{MarginsZero: true, Spacing: 2},
+				Name:   "Footer",
 				Children: []declarative.Widget{
-					declarative.LinkLabel{Text: "New Releases, Issue Tracker and Source Code at " +
-						"<a href=\"https://github.com/Xyaren/arcdps-log-uploader\">" +
-						"https://github.com/Xyaren/arcdps-log-uploader" +
-						"</a>",
+					declarative.LinkLabel{Text: "New Releases, Issue Tracker and Source Code on " +
+						"<a href=\"https://github.com/Xyaren/arcdps-log-uploader\">Github</a>",
 						OnLinkActivated: openLink,
 					},
-					declarative.HSpacer{StretchFactor: 2},
-					declarative.Label{Text: "© Xyaren", Enabled: false},
+					declarative.HSpacer{},
+					declarative.Composite{
+						StretchFactor: 5,
+						Layout:        declarative.HBox{MarginsZero: true, Spacing: 2},
+						Children: []declarative.Widget{
+							declarative.LinkLabel{
+								Font: declarative.Font{
+									Bold:      true,
+									Underline: true,
+								},
+								GraphicsEffects: []walk.WidgetGraphicsEffect{},
+								Visible:         false,
+								AssignTo:        &versionLinkLabel,
+								OnLinkActivated: func(link *walk.LinkLabelLink) {
+									versionLinkLabel.SetVisible(false)
+									defer versionLinkLabel.SetVisible(true)
+
+									answer := walk.MsgBox(mainWindow, "Update",
+										"Do you want to update now?\nThis will restart the application after the update.",
+										walk.MsgBoxYesNo|walk.MsgBoxIconQuestion|walk.MsgBoxTaskModal)
+									log.Debugf("Clicked: %v", answer)
+									if win.LOWORD(uint32(answer)) == walk.DlgCmdYes {
+										mainWindow.SetEnabled(false) // prevent any input
+										go func() {
+											utils.DoUpdate(latestVersion)
+											err := utils.ForkExec()
+											if err != nil {
+												panic(err)
+											}
+											defer syscall.Exit(0)
+										}()
+										walk.MsgBox(mainWindow, "Update in Progress", "Updating now...\n"+
+											"The application will restart itself",
+											walk.DlgCmdOK|walk.MsgBoxTaskModal|walk.MsgBoxIconInformation)
+									}
+								},
+								Text: "An new version is available: v%v - <a>Click here to update!</a>",
+							},
+						},
+					},
+					declarative.HSpacer{},
+					declarative.Composite{
+						StretchFactor: 1,
+						Layout:        declarative.HBox{MarginsZero: true, Spacing: 2},
+						Children: []declarative.Widget{
+							declarative.Label{Text: "© Xyaren", Enabled: false},
+							declarative.Label{Text: " - ", Enabled: false},
+							declarative.Label{Text: utils.Version(), Enabled: false},
+						},
+					},
+					// declarative.HSpacer{StretchFactor: 2},
+
 				},
 			},
 		},
 	}
-
+	var err error
 	_, err = window.Run()
 	return err
 }
 
-func shouldRetryBeAllowed(tv *walk.TableView, model *ArcLogModel) bool {
+func checkForUpdate(versionLinkLabel **walk.LinkLabel) {
+	var currentIsLatest bool
+	latestVersion, currentIsLatest = utils.CheckUpdate()
+
+	if !currentIsLatest {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		// wait
+		for {
+			if versionLinkLabel != nil || ctx.Err() != nil {
+				break
+			}
+		}
+		if versionLinkLabel != nil {
+			_ = (*versionLinkLabel).SetText(
+				strings.ReplaceAll((*versionLinkLabel).Text(),
+					"%v",
+					latestVersion.Version.String()))
+			(*versionLinkLabel).SetVisible(true)
+		}
+	}
+}
+
+func shouldRetryBeAllowed(tv *walk.TableView, m *ArcLogModel) bool {
 	if len(tv.SelectedIndexes()) == 0 {
 		return false
 	}
 	indexes := tv.SelectedIndexes()
 	for _, index := range indexes {
-		if model.items[index].status == Error {
+		if m.items[index].Status == model.Error {
 			return true
 		}
 	}
 	return false
 }
 
-func checkBrowsable(tv *walk.TableView, model *ArcLogModel) bool {
+func checkBrowsable(tv *walk.TableView, m *ArcLogModel) bool {
 	if len(tv.SelectedIndexes()) == 1 {
-		arcLog := model.items[tv.SelectedIndexes()[0]]
-		if arcLog.status == Done && arcLog.report != nil && len(arcLog.report.Permalink) > 0 {
+		arcLog := m.items[tv.SelectedIndexes()[0]]
+		if arcLog.Status == model.Done && arcLog.Report != nil && len(arcLog.Report.Permalink) > 0 {
 			return true
 		}
 	}
 	return false
 }
 
-func onDrop(files []string, model *ArcLogModel, prog *walk.ProgressBar) {
+func onDrop(files []string, m *ArcLogModel, prog *walk.ProgressBar) {
 	for _, file := range files {
 		// handle folder
 		if info, err := os.Stat(file); err == nil && info.IsDir() {
 			foundFiles, _ := onFolderDrop(file)
 			if len(foundFiles) > 0 {
-				onDrop(foundFiles, model, prog)
+				onDrop(foundFiles, m, prog)
 			}
 		}
 
 		filename := strings.ToLower(filepath.Base(file))
 		if logFilePattern.MatchString(filename) {
 			// handle if item already exists in list
-			possibleIndex, existingItem := fileAlreadyInList(model, file)
+			possibleIndex, existingItem := fileAlreadyInList(m, file)
 			if possibleIndex >= 0 {
-				if existingItem.report == nil {
+				if existingItem.Report == nil {
 					go queueUpload(existingItem)
 				}
 				continue
 			}
 
 			// create new
-			newElem := new(ArcLog)
-			newElem.status = Outstanding
-			newElem.file = file
-			model.items = append(model.items, newElem)
-			var index = len(model.items) - 1
-			model.PublishRowsInserted(index, index)
+			newElem := new(model.ArcLog)
+			newElem.Status = model.Outstanding
+			newElem.File = file
+			m.items = append(m.items, newElem)
+			var index = len(m.items) - 1
+			m.PublishRowsInserted(index, index)
 
 			go queueUpload(newElem)
 		} else {
 			log.Debugf("%v does not match the arc log file patern", filename)
 		}
 	}
-	updateProgress(model, prog)
+	updateProgress(m, prog)
 }
 
 func onFolderDrop(file string) ([]string, error) {
@@ -308,65 +390,65 @@ func onFolderDrop(file string) ([]string, error) {
 	return folderFiles, err
 }
 
-func updateText(model *ArcLogModel, area *walk.TextEdit) {
-	output := generateMessageText(model.items)
+func updateText(m *ArcLogModel, area *walk.TextEdit) {
+	output := generateMessageText(m.items)
 	_ = area.SetText(output)
 }
 
-func queueUpload(newElem *ArcLog) {
+func queueUpload(newElem *model.ArcLog) {
 	uploadOptions := getCurrentOptions()
-	newElem.anonymized = uploadOptions.anonymous
-	if uploadOptions.detailedWvw {
-		newElem.detailed = True
+	newElem.Anonymized = uploadOptions.Anonymous
+	if uploadOptions.DetailedWvw {
+		newElem.Detailed = model.True
 	} else {
-		newElem.detailed = False
+		newElem.Detailed = model.False
 	}
 
-	onDone := func(report *DpsReportResponse, err error) {
+	onDone := func(report *model.DpsReportResponse, err error) {
 		if err != nil {
-			newElem.status = Error
-			newElem.errorMessage = err
+			newElem.Status = model.Error
+			newElem.ErrorMessage = err
 		} else {
-			newElem.status = Done
-			newElem.report = report
-			newElem.checked = true
+			newElem.Status = model.Done
+			newElem.Report = report
+			newElem.Checked = true
 		}
 		changeCallback(newElem)
 	}
 
-	entry := QueueEntry{
-		arcLog:  newElem,
-		options: &uploadOptions,
-		onDone:  onDone,
-		onChange: func() {
+	entry := model.QueueEntry{
+		ArcLog:  newElem,
+		Options: &uploadOptions,
+		OnDone:  onDone,
+		OnChange: func() {
 			changeCallback(newElem)
 		},
 	}
 
-	newElem.status = WaitingInQueue
+	newElem.Status = model.WaitingInQueue
 	changeCallback(newElem)
 
 	// queue entry
-	uploadQueue <- entry
+	model.UploadQueue <- entry
 }
 
-func getCurrentOptions() UploadOptions {
-	uploadOptions := UploadOptions{
-		detailedWvw: options.DetailedWvw,
-		anonymous:   options.Anonymous,
+func getCurrentOptions() model.UploadOptions {
+	uploadOptions := model.UploadOptions{
+		DetailedWvw: options.DetailedWvw,
+		Anonymous:   options.Anonymous,
 	}
 	return uploadOptions
 }
 
 var progressBarLock sync.Mutex
 
-func updateProgress(model *ArcLogModel, progressBar *walk.ProgressBar) {
+func updateProgress(m *ArcLogModel, progressBar *walk.ProgressBar) {
 	progressBarLock.Lock()
-	progressBar.SetRange(0, len(model.items))
+	progressBar.SetRange(0, len(m.items))
 
 	var count = 0
-	for _, v := range model.items {
-		if v.status == Done || v.status == Error {
+	for _, v := range m.items {
+		if v.Status == model.Done || v.Status == model.Error {
 			// Append desired values to slice
 			count++
 		}

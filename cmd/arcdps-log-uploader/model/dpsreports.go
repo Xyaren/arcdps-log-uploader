@@ -1,4 +1,4 @@
-package main
+package model
 
 import (
 	"bytes"
@@ -17,6 +17,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/utils"
 	"golang.org/x/time/rate"
 )
 
@@ -25,56 +26,56 @@ type Encounter struct {
 }
 
 type DpsReportResponse struct {
-	ID            string    `json:"id"`
-	Error         string    `json:"error"`
-	Permalink     string    `json:"permalink"`
-	Encounter     Encounter `json:"encounter"`
-	EncounterTime jsonTime  `json:"encounterTime"`
+	ID            string         `json:"id"`
+	Error         string         `json:"error"`
+	Permalink     string         `json:"permalink"`
+	Encounter     Encounter      `json:"encounter"`
+	EncounterTime utils.JSONTime `json:"encounterTime"`
 }
 
-var client = NewRateLimitedClient(rate.NewLimiter(rate.Every(10*time.Second), 45))
+var client = utils.NewRateLimitedClient(rate.NewLimiter(rate.Every(10*time.Second), 45))
 var rateLimitedUntil *time.Time
 
-var uploadQueue = make(chan QueueEntry, 1000)
+var UploadQueue = make(chan QueueEntry, 1000)
 var wg sync.WaitGroup
 
 type UploadOptions struct {
-	detailedWvw bool
-	anonymous   bool
+	DetailedWvw bool
+	Anonymous   bool
 }
 
 type QueueEntry struct {
-	arcLog   *ArcLog
-	options  *UploadOptions
-	onDone   func(*DpsReportResponse, error)
-	onChange func()
+	ArcLog   *ArcLog
+	Options  *UploadOptions
+	OnDone   func(*DpsReportResponse, error)
+	OnChange func()
 }
 
-func startWorkerGroup() {
+func StartWorkerGroup() {
 	// start the worker
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
-		go worker(uploadQueue)
+		go worker(UploadQueue)
 	}
 }
 
-func closeQueue() {
-	close(uploadQueue)
+func CloseQueue() {
+	close(UploadQueue)
 }
 
 func worker(jobChan <-chan QueueEntry) {
 	for job := range jobChan {
-		options := job.options
-		file := job.arcLog.file
+		options := job.Options
+		file := job.ArcLog.File
 
 		report, err := uploadFile(file, options, func(status LogStatus) {
-			job.arcLog.status = status
-			job.onChange()
+			job.ArcLog.Status = status
+			job.OnChange()
 		})
-		if job.arcLog.detailed == True && !options.detailedWvw {
-			job.arcLog.detailed = ForcedFalse
+		if job.ArcLog.Detailed == True && !options.DetailedWvw {
+			job.ArcLog.Detailed = ForcedFalse
 		}
-		job.onDone(report, err)
+		job.OnDone(report, err)
 	}
 }
 
@@ -130,9 +131,9 @@ func doRequestInternal(callback func(status LogStatus), path string, options *Up
 		return doRequestInternal(callback, path, options, logger)
 	}
 	if res.StatusCode == 500 {
-		if options.detailedWvw {
+		if options.DetailedWvw {
 			logger.Warnf("Upload failed due to server error. Trying again without detailed wvw")
-			options.detailedWvw = false
+			options.DetailedWvw = false
 			return doRequestInternal(callback, path, options, logger)
 		}
 	}
@@ -202,13 +203,13 @@ func buildURL(options *UploadOptions) (*url.URL, error) {
 	}
 	q := u.Query()
 
-	if options.detailedWvw {
+	if options.DetailedWvw {
 		q.Set("detailedwvw", "true")
 	} else {
 		q.Set("detailedwvw", "false")
 	}
 
-	if options.anonymous {
+	if options.Anonymous {
 		q.Set("anonymous", "true")
 	} else {
 		q.Set("anonymous", "false")

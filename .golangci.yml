@@ -1,3 +1,7 @@
+run:
+  skip-files:
+    - cmd/arcdps-log-uploader/utils/versioninfo.go
+
 linters-settings:
   #  depguard:
   #    list-type: blacklist
@@ -123,8 +127,6 @@ linters:
     - revive
     #    - wsl
     - ifshort
-
-# issues:
 # Excluding configuration per-path, per-linter, per-text and per-source
 #  exclude-rules:
 #    - path: _test\.go

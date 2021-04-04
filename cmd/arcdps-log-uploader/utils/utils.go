@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func openBrowser(url string) {
+func OpenBrowser(url string) {
 	var err error
 
 	switch runtime.GOOS {
@@ -28,14 +28,18 @@ func openBrowser(url string) {
 	}
 }
 
-func setupLogging() {
+func SetupLogging() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
 	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true, PadLevelText: true})
 }
 
-func copyToClipboard(text string) {
+func CopyToClipboard(text string) {
 	if err := walk.Clipboard().SetText(text); err != nil {
 		log.Print("Copy: ", err)
 	}
+}
+
+func Version() string {
+	return versionInfo.StringFileInfo.ProductVersion
 }

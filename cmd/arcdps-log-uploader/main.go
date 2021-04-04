@@ -1,4 +1,4 @@
-//go:generate goversioninfo ./_res/versioninfo.json
+//go:generate goversioninfo -gofile=utils/versioninfo.go -gofilepackage=utils ./_res/versioninfo.json
 
 package main
 
@@ -7,10 +7,13 @@ import (
 
 	"github.com/lxn/walk"
 	log "github.com/sirupsen/logrus"
+	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/model"
+	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/ui"
+	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/utils"
 )
 
 func main() {
-	setupLogging()
+	utils.SetupLogging()
 	log.Info("Starting")
 
 	if runningWithAdminPrivileges() {
@@ -25,14 +28,14 @@ func main() {
 }
 
 func start() {
-	startWorkerGroup()
+	model.StartWorkerGroup()
 
-	var err = startUI()
+	var err = ui.StartUI()
 	if err != nil {
 		panic(err)
 	}
 
-	closeQueue()
+	model.CloseQueue()
 }
 
 func runningWithAdminPrivileges() bool {

@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"strconv"
@@ -6,14 +6,13 @@ import (
 	"time"
 )
 
-type jsonTime time.Time
+type JSONTime time.Time
 
-//nolint:unparam
-func (t jsonTime) MarshalJSON() ([]byte, error) {
+func (t JSONTime) MarshalJSON() ([]byte, error) {
 	return []byte(strconv.FormatInt(time.Time(t).Unix(), 10)), nil
 }
 
-func (t *jsonTime) UnmarshalJSON(s []byte) (err error) {
+func (t *JSONTime) UnmarshalJSON(s []byte) (err error) {
 	r := strings.ReplaceAll(string(s), `"`, ``)
 
 	q, err := strconv.ParseInt(r, 10, 64)
@@ -24,4 +23,4 @@ func (t *jsonTime) UnmarshalJSON(s []byte) (err error) {
 	return
 }
 
-func (t jsonTime) String() string { return time.Time(t).String() }
+func (t JSONTime) String() string { return time.Time(t).String() }

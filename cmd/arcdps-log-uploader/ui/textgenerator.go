@@ -1,17 +1,19 @@
-package main
+package ui
 
 import (
 	"fmt"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/model"
 )
 
-func generateMessageText(entries []*ArcLog) string {
-	var result []ArcLog
+func generateMessageText(entries []*model.ArcLog) string {
+	var result []model.ArcLog
 	for _, e := range entries {
-		if e.report != nil {
-			if e.checked {
+		if e.Report != nil {
+			if e.Checked {
 				result = append(result, *e)
 			}
 		}
@@ -22,21 +24,21 @@ func generateMessageText(entries []*ArcLog) string {
 	}
 
 	sort.SliceStable(result, func(i, j int) bool {
-		return time.Time(result[i].report.EncounterTime).Before(time.Time(result[j].report.EncounterTime))
+		return time.Time(result[i].Report.EncounterTime).Before(time.Time(result[j].Report.EncounterTime))
 	})
 
 	var lines []string
 
 	for _, entry := range result {
 		output := ""
-		output += "`" + time.Time(entry.report.EncounterTime).Format("15:04") + "`"
+		output += "`" + time.Time(entry.Report.EncounterTime).Format("15:04") + "`"
 		output += " "
 
-		out := time.Time{}.Add(time.Duration(entry.report.Encounter.Duration) * time.Second)
+		out := time.Time{}.Add(time.Duration(entry.Report.Encounter.Duration) * time.Second)
 		output += "`" + out.Format("04m 05s") + "`"
 		output += " "
 		output += "<"
-		output += entry.report.Permalink
+		output += entry.Report.Permalink
 		output += ">"
 		lines = append(lines, output)
 	}
@@ -56,7 +58,7 @@ func generateMessageText(entries []*ArcLog) string {
 		messages = append(messages, currentMessage)
 	}
 
-	headline := "**Training " + time.Time(result[0].report.EncounterTime).Format("02.01.2006") + "**"
+	headline := "**Training " + time.Time(result[0].Report.EncounterTime).Format("02.01.2006") + "**"
 
 	for i, message := range messages {
 		paging := ""

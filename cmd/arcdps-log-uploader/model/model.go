@@ -1,4 +1,4 @@
-package main
+package model
 
 type LogStatus int
 
@@ -21,11 +21,11 @@ const (
 )
 
 type ArcLog struct {
-	checked      bool
-	file         string
-	status       LogStatus
-	errorMessage error
-	report       *DpsReportResponse
-	detailed     DetailedStatus
-	anonymized   bool
+	Checked      bool
+	File         string
+	Status       LogStatus
+	ErrorMessage error
+	Report       *DpsReportResponse
+	Detailed     DetailedStatus
+	Anonymized   bool
 }

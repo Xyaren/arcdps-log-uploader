@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lxn/walk"
+	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/model"
 )
 
 type ArcLogModel struct {
@@ -14,7 +15,7 @@ type ArcLogModel struct {
 	walk.SorterBase
 	sortColumn int
 	sortOrder  walk.SortOrder
-	items      []*ArcLog
+	items      []*model.ArcLog
 }
 
 var (
@@ -26,39 +27,39 @@ var (
 func (m *ArcLogModel) Sort(col int, order walk.SortOrder) error {
 	m.sortColumn, m.sortOrder = col, order
 
-	sortFuncs := []func(a, b *ArcLog) bool{
-		func(a, b *ArcLog) bool {
-			return a.file < b.file
+	sortFuncs := []func(a, b *model.ArcLog) bool{
+		func(a, b *model.ArcLog) bool {
+			return a.File < b.File
 		},
-		func(a, b *ArcLog) bool {
-			return a.status < b.status
+		func(a, b *model.ArcLog) bool {
+			return a.Status < b.Status
 		},
-		func(a, b *ArcLog) bool {
+		func(a, b *model.ArcLog) bool {
 			comparisonResult, oneIsMissing := modelUnavailable(a, b)
 			if oneIsMissing {
 				return comparisonResult
 			}
-			return time.Time(a.report.EncounterTime).Before(time.Time(b.report.EncounterTime))
+			return time.Time(a.Report.EncounterTime).Before(time.Time(b.Report.EncounterTime))
 		},
-		func(a, b *ArcLog) bool {
+		func(a, b *model.ArcLog) bool {
 			comparisonResult, oneIsMissing := modelUnavailable(a, b)
 			if oneIsMissing {
 				return comparisonResult
 			}
-			return a.report.Encounter.Duration < b.report.Encounter.Duration
+			return a.Report.Encounter.Duration < b.Report.Encounter.Duration
 		},
-		func(a, b *ArcLog) bool {
-			return a.detailed < b.detailed
+		func(a, b *model.ArcLog) bool {
+			return a.Detailed < b.Detailed
 		},
-		func(a, b *ArcLog) bool {
-			return a.anonymized && b.anonymized
+		func(a, b *model.ArcLog) bool {
+			return a.Anonymized && b.Anonymized
 		},
-		func(a, b *ArcLog) bool {
+		func(a, b *model.ArcLog) bool {
 			comparisonResult, oneIsMissing := modelUnavailable(a, b)
 			if oneIsMissing {
 				return comparisonResult
 			}
-			return a.report.Permalink < b.report.Permalink
+			return a.Report.Permalink < b.Report.Permalink
 		},
 	}
 
@@ -81,13 +82,13 @@ func (m *ArcLogModel) Sort(col int, order walk.SortOrder) error {
 	return m.SorterBase.Sort(col, order)
 }
 
-func modelUnavailable(a, b *ArcLog) (result, oneOrMoreIsMissing bool) {
+func modelUnavailable(a, b *model.ArcLog) (result, oneOrMoreIsMissing bool) {
 	switch {
-	case a.report == nil && b.report == nil:
+	case a.Report == nil && b.Report == nil:
 		return false, true
-	case a.report == nil:
+	case a.Report == nil:
 		return false, true
-	case b.report == nil:
+	case b.Report == nil:
 		return true, true
 	}
 	return false, false
@@ -108,61 +109,61 @@ func (m *ArcLogModel) RowCount() int {
 func (m *ArcLogModel) Value(row, col int) interface{} {
 	item := m.items[row]
 
-	valueFunc := []func(item *ArcLog) interface{}{
-		func(item *ArcLog) interface{} {
-			return filepath.Base(item.file)
+	valueFunc := []func(item *model.ArcLog) interface{}{
+		func(item *model.ArcLog) interface{} {
+			return filepath.Base(item.File)
 		},
-		func(item *ArcLog) interface{} {
-			switch item.status {
-			case Outstanding:
+		func(item *model.ArcLog) interface{} {
+			switch item.Status {
+			case model.Outstanding:
 				return "Outstanding"
-			case WaitingInQueue:
+			case model.WaitingInQueue:
 				return "Waiting (Queue)"
-			case WaitingRateLimitingHard:
-			case WaitingRateLimiting:
+			case model.WaitingRateLimitingHard:
+			case model.WaitingRateLimiting:
 				return "Waiting (Rate Limit)"
-			case Uploading:
+			case model.Uploading:
 				return "Uploading"
-			case Done:
+			case model.Done:
 				return "Done"
-			case Error:
-				return fmt.Sprintf("Error (%v)", item.errorMessage)
+			case model.Error:
+				return fmt.Sprintf("Error (%v)", item.ErrorMessage)
 			}
 			return "Unknown"
 		},
-		func(item *ArcLog) interface{} {
-			if item.report != nil {
-				return time.Time(item.report.EncounterTime)
+		func(item *model.ArcLog) interface{} {
+			if item.Report != nil {
+				return time.Time(item.Report.EncounterTime)
 			}
 			return ""
 		},
-		func(item *ArcLog) interface{} {
-			if item.report != nil {
-				out := time.Time{}.Add(time.Duration(item.report.Encounter.Duration) * time.Second)
+		func(item *model.ArcLog) interface{} {
+			if item.Report != nil {
+				out := time.Time{}.Add(time.Duration(item.Report.Encounter.Duration) * time.Second)
 				return out.Format("04m 05s")
 			}
 			return ""
 		},
-		func(item *ArcLog) interface{} {
-			switch item.detailed {
-			case True:
+		func(item *model.ArcLog) interface{} {
+			switch item.Detailed {
+			case model.True:
 				return checkmark
-			case False:
+			case model.False:
 				return cross
-			case ForcedFalse:
+			case model.ForcedFalse:
 				return "Forced Off"
 			}
 			return ""
 		},
-		func(item *ArcLog) interface{} {
-			if item.anonymized {
+		func(item *model.ArcLog) interface{} {
+			if item.Anonymized {
 				return checkmark
 			}
 			return cross
 		},
-		func(item *ArcLog) interface{} {
-			if item.report != nil {
-				return item.report.Permalink
+		func(item *model.ArcLog) interface{} {
+			if item.Report != nil {
+				return item.Report.Permalink
 			}
 			return ""
 		},
@@ -172,25 +173,24 @@ func (m *ArcLogModel) Value(row, col int) interface{} {
 
 // Called by the TableView to retrieve if a given row is checked.
 func (m *ArcLogModel) Checked(row int) bool {
-	return m.items[row].checked
+	return m.items[row].Checked
 }
 
 // Called by the TableView when the user toggled the check box of a given row.
-//nolint:unparam
 func (m *ArcLogModel) SetChecked(row int, checked bool) error {
 	item := m.items[row]
 	if checked {
-		if item.status == Done {
-			item.checked = checked
+		if item.Status == model.Done {
+			item.Checked = checked
 			refreshTextArea()
 		}
 	} else {
-		item.checked = checked
+		item.Checked = checked
 	}
 	return nil
 }
 
-func (m *ArcLogModel) IndexOf(item *ArcLog) int {
+func (m *ArcLogModel) IndexOf(item *model.ArcLog) int {
 	for i, v := range m.items {
 		if v == item {
 			return i
@@ -199,9 +199,9 @@ func (m *ArcLogModel) IndexOf(item *ArcLog) int {
 	return -1
 }
 
-func fileAlreadyInList(model *ArcLogModel, file string) (int, *ArcLog) {
-	for i, item := range model.items {
-		if item.file == file {
+func fileAlreadyInList(m *ArcLogModel, file string) (int, *model.ArcLog) {
+	for i, item := range m.items {
+		if item.File == file {
 			return i, item
 		}
 	}
