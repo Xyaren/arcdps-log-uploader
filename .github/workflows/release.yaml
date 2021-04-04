@@ -13,27 +13,26 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: '1.15' # The Go version to download (if necessary) and use.
-      - name: Extract tag name
-        id: tag
-        uses: actions/github-script@0.2.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            return context.payload.ref.replace(/\/refs\/tags\//, '');
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
       - name: Update Version (ProductVersion)
         uses: deef0000dragon1/json-edit-action/@v1
         env:
           FILE: cmd/arcdps-log-uploader/_res/versioninfo.json
           KEY: StringFileInfo.ProductVersion
-          VALUE: ${{ steps.tag.outputs.result }}
+          VALUE: ${{ steps.get_version.outputs.VERSION }}
       - name: Update Version (FileVersion)
         uses: deef0000dragon1/json-edit-action/@v1
         env:
           FILE: cmd/arcdps-log-uploader/_res/versioninfo.json
           KEY: StringFileInfo.FileVersion
-          VALUE: ${{ steps.tag.outputs.result }}
+          VALUE: ${{ steps.get_version.outputs.VERSION }}
+
       - run: make build_i386
       - run: make build_amd64
+
       - name: "Zip Artifacts"
         run: find ./out -name '*_*.exe' -exec zip -j -D '{}.zip' '{}' \;
       - name: Build Changelog
