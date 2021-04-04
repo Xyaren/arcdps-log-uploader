@@ -22,14 +22,14 @@
     "Comments": "",
     "CompanyName": "Xyaren",
     "FileDescription": "ArcDps Log Uploader & Formatter",
-    "FileVersion": "snapshot",
+    "FileVersion": "v0.0.1",
     "InternalName": "arcdps-log-uploader",
     "LegalCopyright": "",
     "LegalTrademarks": "",
     "OriginalFilename": "",
     "PrivateBuild": "",
     "ProductName": "arcdps-log-uploader",
-    "ProductVersion": "snapshot",
+    "ProductVersion": "v0.0.1",
     "SpecialBuild": ""
   },
   "VarFileInfo": {
