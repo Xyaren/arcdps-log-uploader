@@ -126,14 +126,5 @@ linters:
     #    - testpackage
     - revive
     #    - wsl
-    - ifshort
-# Excluding configuration per-path, per-linter, per-text and per-source
-#  exclude-rules:
-#    - path: _test\.go
-#      linters:
-#        - gomnd
-#
-#    # https://github.com/go-critic/go-critic/issues/926
-#    - linters:
-#        - gocritic
-#      text: "unnecessaryDefer:"
+    #    - ifshort
+
