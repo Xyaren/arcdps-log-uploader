@@ -20,7 +20,7 @@ func generateMessageText(entries []*model.ArcLog, title string) string {
 	for _, arcLog := range entries {
 		if arcLog.Report != nil {
 			if arcLog.Checked {
-				encounterTime := time.Time((*arcLog).Report.EncounterTime)
+				encounterTime := time.Time(arcLog.Report.EncounterTime)
 				arcLog := ProcessedArcLog{arcLog, encounterTime}
 				result = append(result, arcLog)
 				dateOnly := time.Date(encounterTime.Year(), encounterTime.Month(), encounterTime.Day(), 0, 0, 0, 0, time.Local)
@@ -86,7 +86,7 @@ func generateMessageText(entries []*model.ArcLog, title string) string {
 	return strings.Join(messages, "\r\n\r\n--------\r\n\r\n")
 }
 
-func headline(title string, time time.Time, multipleDays bool) string {
+func headline(title string, dateTime time.Time, multipleDays bool) string {
 	var elements = make([]string, 0)
 	trimmedTitle := strings.TrimSpace(title)
 	if len(trimmedTitle) > 0 {
@@ -94,7 +94,7 @@ func headline(title string, time time.Time, multipleDays bool) string {
 	}
 
 	if !multipleDays {
-		elements = append(elements, time.Format("02.01.2006"))
+		elements = append(elements, dateTime.Format("02.01.2006"))
 	}
 
 	return "**" + strings.Join(elements, " ") + "**"
