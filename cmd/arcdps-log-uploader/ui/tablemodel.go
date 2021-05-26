@@ -120,6 +120,7 @@ func (m *ArcLogModel) Value(row, col int) interface{} {
 			case model.WaitingInQueue:
 				return "Waiting (Queue)"
 			case model.WaitingRateLimitingHard:
+				return "Waiting (Rate Limited)"
 			case model.WaitingRateLimiting:
 				return "Waiting (Rate Limit)"
 			case model.Uploading:
@@ -182,11 +183,11 @@ func (m *ArcLogModel) SetChecked(row int, checked bool) error {
 	if checked {
 		if item.Status == model.Done {
 			item.Checked = checked
-			refreshTextArea()
 		}
 	} else {
 		item.Checked = checked
 	}
+	reprocessOutput()
 	return nil
 }
 

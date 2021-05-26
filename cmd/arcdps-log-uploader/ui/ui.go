@@ -27,9 +27,9 @@ func openLink(link *walk.LinkLabelLink) {
 
 var logFilePattern = regexp.MustCompile(`(?m).+\.(evtc(\.zip)?|zevtc)$`)
 
-var refreshTextArea func()
+var reprocessOutput func()
 
-var changeCallback func(arcLog *model.ArcLog)
+var changeCallback func(arcLog *model.ArcLog, linkChanged bool)
 var latestVersion *selfupdate.Release
 
 type Options struct {
@@ -48,14 +48,22 @@ func StartUI() error {
 	var prog *walk.ProgressBar
 	var button *walk.PushButton
 	var outputTextArea *walk.TextEdit
+	var outputTitleLineEdit *walk.LineEdit
 	var tableModel *ArcLogModel
 	var db *walk.DataBinder
 	var versionLinkLabel *walk.LinkLabel
 
-	changeCallback = func(arcLog *model.ArcLog) {
+	idler := utils.NewIdler(time.Duration(100)*time.Millisecond, func() {
+		output := generateMessageText(tableModel.items, outputTitleLineEdit.Text())
+		_ = outputTextArea.SetText(output)
+	})
+
+	changeCallback = func(arcLog *model.ArcLog, linkChanged bool) {
 		tableModel.PublishRowChanged(tableModel.IndexOf(arcLog))
 		updateProgress(tableModel, prog)
-		updateText(tableModel, outputTextArea)
+		if linkChanged {
+			idler.Call()
+		}
 	}
 
 	isBrowsableAllowed := walk.NewMutableCondition()
@@ -66,14 +74,11 @@ func StartUI() error {
 
 	tableModel = new(ArcLogModel)
 
-	refreshTextArea = func() {
-		output := generateMessageText(tableModel.items)
-		_ = outputTextArea.SetText(output)
-	}
+	reprocessOutput = idler.Call
 
 	go checkForUpdate(&versionLinkLabel)
 
-	window := declarative.MainWindow{
+	var window = declarative.MainWindow{
 		AssignTo: &mainWindow,
 		Title:    "ArcDps Log Uploader & Formatter",
 		MinSize:  declarative.Size{Width: 900, Height: 200},
@@ -197,13 +202,34 @@ func StartUI() error {
 							_ = isRetryAllowed.SetSatisfied(shouldRetryBeAllowed(tv, tableModel))
 						},
 					},
-					declarative.TextEdit{
+					declarative.Composite{
+						Layout:        declarative.VBox{MarginsZero: true},
 						StretchFactor: 10,
-						AssignTo:      &outputTextArea,
-						Text:          "",
-						ReadOnly:      true,
-						HScroll:       true,
-						VScroll:       true,
+
+						Children: []declarative.Widget{
+							declarative.Composite{
+								Layout: declarative.HBox{MarginsZero: true},
+								Children: []declarative.Widget{
+									declarative.Label{
+										Text: "Title",
+									},
+									declarative.LineEdit{
+										Text:          "Training",
+										AssignTo:      &outputTitleLineEdit,
+										OnTextChanged: reprocessOutput,
+										MaxLength:     100,
+									},
+								},
+							},
+							declarative.TextEdit{
+								StretchFactor: 10,
+								AssignTo:      &outputTextArea,
+								Text:          "",
+								ReadOnly:      true,
+								HScroll:       true,
+								VScroll:       true,
+							},
+						},
 					},
 				},
 			},
@@ -390,11 +416,6 @@ func onFolderDrop(file string) ([]string, error) {
 	return folderFiles, err
 }
 
-func updateText(m *ArcLogModel, area *walk.TextEdit) {
-	output := generateMessageText(m.items)
-	_ = area.SetText(output)
-}
-
 func queueUpload(newElem *model.ArcLog) {
 	uploadOptions := getCurrentOptions()
 	newElem.Anonymized = uploadOptions.Anonymous
@@ -413,7 +434,7 @@ func queueUpload(newElem *model.ArcLog) {
 			newElem.Report = report
 			newElem.Checked = true
 		}
-		changeCallback(newElem)
+		changeCallback(newElem, true)
 	}
 
 	entry := model.QueueEntry{
@@ -421,12 +442,12 @@ func queueUpload(newElem *model.ArcLog) {
 		Options: &uploadOptions,
 		OnDone:  onDone,
 		OnChange: func() {
-			changeCallback(newElem)
+			changeCallback(newElem, false)
 		},
 	}
 
 	newElem.Status = model.WaitingInQueue
-	changeCallback(newElem)
+	changeCallback(newElem, false)
 
 	// queue entry
 	model.UploadQueue <- entry

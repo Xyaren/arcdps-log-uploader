@@ -1,6 +1,6 @@
 module github.com/xyaren/arcdps-log-uploader
 
-go 1.15
+go 1.16
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
