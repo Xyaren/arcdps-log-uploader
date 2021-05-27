@@ -28,7 +28,7 @@ jobs:
             ${{ runner.os }}-go-
       - name: Generate Sources
         run: make generate
-      - name: Run Revive Action by building from repository
+      - name: Lint with Revive
         uses: docker://morphy/revive-action:v2
         with:
           # Path to your Revive config within the repo (optional)
@@ -37,7 +37,7 @@ jobs:
           exclude: "cmd/arcdps-log-uploader/utils/versioninfo.go"
           # Path pattern (default: ./...)
           #path: "./foo/..."
-      - name: golangci-lint
+      - name: Lint with golangci-lint
         uses: golangci/golangci-lint-action@v2.5.2
         env:
           GOOS: windows
