@@ -11,6 +11,9 @@ linters-settings:
   #      - github.com/sirupsen/logrus
   #    packages-with-error-message:
   #      - github.com/sirupsen/logrus: "logging is allowed only by logutils.Log"
+  staticcheck:
+    # Select the Go version to target. The default is '1.13'.
+    go: "1.16"
   dupl:
     threshold: 100
   funlen:
@@ -38,8 +41,6 @@ linters-settings:
     min-complexity: 15
   goimports:
     local-prefixes: github.com/golangci/golangci-lint
-  golint:
-    min-confidence: 0
   gomnd:
     settings:
       mnd:
@@ -90,7 +91,6 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
     #    - gomnd
     - goprintffuncname
     - gosec
@@ -124,7 +124,7 @@ linters:
     - nestif
     #    - prealloc
     #    - testpackage
-    - revive
+    #    - revive
     #    - wsl
     #    - ifshort
 
