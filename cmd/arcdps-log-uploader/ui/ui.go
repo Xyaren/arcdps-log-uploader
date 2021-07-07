@@ -37,25 +37,44 @@ type Options struct {
 	Anonymous   bool
 }
 
+type Output struct {
+	FormatOptions FormatOptions
+	Results       Results
+}
+type FormatOptions struct {
+	Title           string
+	IncludeDuration bool
+}
+type Results struct {
+	Discord   string
+	Teamspeak string
+}
+
 var options = new(Options)
+var output = new(Output)
 
 //nolint:funlen
 func StartUI() error {
 	options.DetailedWvw = true
+	output.FormatOptions.Title = "Training"
+	output.FormatOptions.IncludeDuration = true
+	output.Results.Discord = ""
+	output.Results.Teamspeak = ""
 
 	var mainWindow *walk.MainWindow
 	var tv *walk.TableView
 	var prog *walk.ProgressBar
 	var button *walk.PushButton
-	var outputTextArea *walk.TextEdit
-	var outputTitleLineEdit *walk.LineEdit
+	//var outputTitleLineEdit *walk.LineEdit
 	var tableModel *ArcLogModel
 	var db *walk.DataBinder
 	var versionLinkLabel *walk.LinkLabel
+	var outputFormatTabs *walk.TabWidget
 
 	idler := utils.NewIdler(time.Duration(100)*time.Millisecond, func() {
-		output := generateMessageText(tableModel.items, outputTitleLineEdit.Text())
-		_ = outputTextArea.SetText(output)
+		res := generateMessageText(tableModel.items, output.FormatOptions)
+		output.Results = res
+		_ = db.Reset()
 	})
 
 	changeCallback = func(arcLog *model.ArcLog, linkChanged bool) {
@@ -89,166 +108,249 @@ func StartUI() error {
 		},
 		Icon: 2,
 		Children: []declarative.Widget{
-			declarative.Composite{
-				Layout:             declarative.VBox{MarginsZero: true, Spacing: 2},
-				StretchFactor:      0,
-				AlwaysConsumeSpace: false,
-				Name:               "Header",
-				Children: []declarative.Widget{
-					declarative.LinkLabel{Text: "1. Drop the arcdps log files into this window.- " +
-						"2. Wait until the logs are uploaded to <a href=\"https://dps.report/\">dps.report</a> - " +
-						"3. Optional: Deselect logs if desired. - " +
-						"4. Copy the Text from the right panel into discord.", OnLinkActivated: openLink},
-					declarative.Label{Text: "If you are using Windows 10, I highly recommend enabling log compression in arcdps options."},
-					declarative.Label{Text: "Due to rate limiting, bulk uploading 40 or more logs at once can take quite a while."},
-				},
-			},
-			declarative.Composite{
-				Layout:             declarative.HBox{MarginsZero: true, Spacing: 20},
-				StretchFactor:      0,
-				AlwaysConsumeSpace: false,
-				Name:               "Options",
-				DataBinder: declarative.DataBinder{
-					AssignTo:       &db,
-					Name:           "state",
-					DataSource:     options,
-					ErrorPresenter: declarative.ToolTipErrorPresenter{},
-					AutoSubmit:     true,
-				},
-				Children: []declarative.Widget{
-					declarative.CheckBox{
-						Name:        "DetailedLogs",
-						Text:        "Use Detailed WvW Logs if possible.",
-						ToolTipText: "Detailed WvW is currently not possible for large log files. They will fallback to non-detailed upload.",
-						Checked:     declarative.Bind("DetailedWvw"),
-					},
-					declarative.CheckBox{
-						Name:        "AnonymousLogs",
-						Text:        "Enable anonymized Reports",
-						ToolTipText: "Replace player names in report.",
-						Checked:     declarative.Bind("Anonymous"),
-					},
-				},
-			},
+			//declarative.Composite{
+			//	Layout:        declarative.VBox{MarginsZero: true, Spacing: 2},
+			//	StretchFactor: 0,
+			//	Name:          "Header",
+			//	Children: []declarative.Widget{
+			//		declarative.LinkLabel{Text: "1. Drop the arcdps log files into this window.- " +
+			//			"2. Wait until the logs are uploaded to <a href=\"https://dps.report/\">dps.report</a> - " +
+			//			"3. Optional: Deselect logs if desired. - " +
+			//			"4. Copy the Text from the right panel into discord.", OnLinkActivated: openLink},
+			//	},
+			//},
 			declarative.HSplitter{
 				StretchFactor: 150,
 				Children: []declarative.Widget{
-					declarative.TableView{
-						Name:             "tv",
-						StretchFactor:    18,
-						AssignTo:         &tv,
-						AlternatingRowBG: true,
-						CheckBoxes:       true,
-						ColumnsOrderable: true,
-						MultiSelection:   true,
-						ContextMenuItems: []declarative.MenuItem{
-							declarative.Action{
-								Text:    "Retry",
-								Enabled: declarative.Bind("isRetryAllowed"),
-								OnTriggered: func() {
-									selectedIndexes := tv.SelectedIndexes()
-									for _, index := range selectedIndexes {
-										arcLog := tableModel.items[index]
-										if arcLog.Status == model.Error {
-											log.Debugf("Reqeue requested: %v", arcLog)
-											go queueUpload(arcLog)
-										}
-									}
+					declarative.Composite{
+						Layout:        declarative.VBox{MarginsZero: true},
+						StretchFactor: 18,
+						Name:          "Left Column",
+						Children: []declarative.Widget{
+							declarative.Composite{
+								Layout:        declarative.HBox{MarginsZero: true},
+								StretchFactor: 0,
+								Name:          "OverTable",
+								Children: []declarative.Widget{
+									declarative.TextLabel{
+										Alignment: declarative.AlignHNearVNear,
+										Text: "Tip: If you are using Windows 10, I highly recommend enabling log compression in arcdps options.\n" +
+											"Hint: Due to rate limiting, bulk uploading 40 or more logs at once can take quite a while.",
+									},
+									declarative.HSpacer{},
+									declarative.GroupBox{
+										Title:         "1. Select Upload Options",
+										Layout:        declarative.HBox{},
+										Name:          "Options",
+										StretchFactor: 20,
+										DataBinder: declarative.DataBinder{
+											Name:           "state",
+											DataSource:     options,
+											ErrorPresenter: declarative.ToolTipErrorPresenter{},
+											AutoSubmit:     true,
+										},
+										Children: []declarative.Widget{
+											declarative.CheckBox{
+												Name:        "DetailedLogs",
+												Text:        "Use Detailed WvW Logs if possible.",
+												ToolTipText: "Detailed WvW is currently not possible for large log files. They will fallback to non-detailed upload.",
+												Checked:     declarative.Bind("DetailedWvw"),
+											},
+											declarative.CheckBox{
+												Name:        "AnonymousLogs",
+												Text:        "Enable anonymized Reports",
+												ToolTipText: "Replace player names in report.",
+												Checked:     declarative.Bind("Anonymous"),
+											},
+										},
+									},
 								},
 							},
-							declarative.Action{
-								Text:    "Open Log in Browser",
-								Enabled: declarative.Bind("tv.SelectedCount == 1 && isBrowseAllowed"),
-								OnTriggered: func() {
-									selectedIndexes := tv.SelectedIndexes()
-									arcLog := tableModel.items[selectedIndexes[0]]
-									go utils.OpenBrowser(arcLog.Report.Permalink)
-								},
-							},
-						},
-						OnItemActivated: func() {
-							if tv.CurrentIndex() < 0 {
-								return
-							}
-							currentItem := tableModel.items[tv.CurrentIndex()]
-							if currentItem.Report != nil {
-								utils.OpenBrowser(currentItem.Report.Permalink)
-							}
-						},
-						Columns: []declarative.TableViewColumn{
-							{Title: "File", Width: 150},
-							{Title: "Status", Width: 85},
-							{Title: "Date", Format: "2006-01-02 15:04:05", Width: 120},
-							{Title: "Duration", Width: 60},
-							{Title: "Detailed", Width: 50},
-							{Title: "Anonymized", Width: 70},
-							{Title: "Link", Width: 260},
-						},
-						StyleCell: func(style *walk.CellStyle) {
-							item := tableModel.items[style.Row()]
 
-							if item.Checked {
-								if style.Row()%2 == 0 {
-									style.BackgroundColor = walk.RGB(159, 215, 255)
-								} else {
-									style.BackgroundColor = walk.RGB(143, 199, 239)
-								}
-							}
-						},
-						Model: tableModel,
-						OnSelectedIndexesChanged: func() {
-							fmt.Printf("SelectedIndexes: %v\n", tv.SelectedIndexes())
-							_ = isBrowsableAllowed.SetSatisfied(checkBrowsable(tv, tableModel))
-							_ = isRetryAllowed.SetSatisfied(shouldRetryBeAllowed(tv, tableModel))
+							declarative.GroupBox{
+								Layout:        declarative.HBox{},
+								StretchFactor: 19,
+								Title:         "2. Drop in your Logs - deselect unwanted",
+								Children: []declarative.Widget{
+
+									declarative.TableView{
+										Name:             "tv",
+										StretchFactor:    18,
+										AssignTo:         &tv,
+										AlternatingRowBG: true,
+										CheckBoxes:       true,
+										ColumnsOrderable: true,
+										MultiSelection:   true,
+										ContextMenuItems: []declarative.MenuItem{
+											declarative.Action{
+												Text:    "Retry",
+												Enabled: declarative.Bind("isRetryAllowed"),
+												OnTriggered: func() {
+													selectedIndexes := tv.SelectedIndexes()
+													for _, index := range selectedIndexes {
+														arcLog := tableModel.items[index]
+														if arcLog.Status == model.Error {
+															log.Debugf("Reqeue requested: %v", arcLog)
+															go queueUpload(arcLog)
+														}
+													}
+												},
+											},
+											declarative.Action{
+												Text:    "Open Log in Browser",
+												Enabled: declarative.Bind("tv.SelectedCount == 1 && isBrowseAllowed"),
+												OnTriggered: func() {
+													selectedIndexes := tv.SelectedIndexes()
+													arcLog := tableModel.items[selectedIndexes[0]]
+													go utils.OpenBrowser(arcLog.Report.Permalink)
+												},
+											},
+										},
+										OnItemActivated: func() {
+											if tv.CurrentIndex() < 0 {
+												return
+											}
+											currentItem := tableModel.items[tv.CurrentIndex()]
+											if currentItem.Report != nil {
+												utils.OpenBrowser(currentItem.Report.Permalink)
+											}
+										},
+										Columns: []declarative.TableViewColumn{
+											{Title: "File", Width: 150},
+											{Title: "Status", Width: 85},
+											{Title: "Date", Format: "2006-01-02 15:04:05", Width: 120},
+											{Title: "Duration", Width: 60},
+											{Title: "Detailed", Width: 50},
+											{Title: "Anonymized", Width: 70},
+											{Title: "Link", Width: 260},
+										},
+										StyleCell: func(style *walk.CellStyle) {
+											item := tableModel.items[style.Row()]
+
+											if item.Checked {
+												if style.Row()%2 == 0 {
+													style.BackgroundColor = walk.RGB(159, 215, 255)
+												} else {
+													style.BackgroundColor = walk.RGB(143, 199, 239)
+												}
+											}
+										},
+										Model: tableModel,
+										OnSelectedIndexesChanged: func() {
+											fmt.Printf("SelectedIndexes: %v\n", tv.SelectedIndexes())
+											_ = isBrowsableAllowed.SetSatisfied(checkBrowsable(tv, tableModel))
+											_ = isRetryAllowed.SetSatisfied(shouldRetryBeAllowed(tv, tableModel))
+										},
+									},
+								},
+							},
 						},
 					},
 					declarative.Composite{
 						Layout:        declarative.VBox{MarginsZero: true},
 						StretchFactor: 10,
-
+						DataBinder: declarative.DataBinder{
+							Name:            "state",
+							AssignTo:        &db,
+							DataSource:      output,
+							ErrorPresenter:  declarative.ToolTipErrorPresenter{},
+							AutoSubmit:      true,
+							AutoSubmitDelay: 0,
+							OnSubmitted:     reprocessOutput,
+						},
 						Children: []declarative.Widget{
-							declarative.Composite{
-								Layout: declarative.HBox{MarginsZero: true},
+							declarative.GroupBox{
+								Title:         "3. Select Formatting Options",
+								Layout:        declarative.VBox{},
+								StretchFactor: 10,
 								Children: []declarative.Widget{
-									declarative.Label{
-										Text: "Title",
-									},
-									declarative.LineEdit{
-										Text:          "Training",
-										AssignTo:      &outputTitleLineEdit,
-										OnTextChanged: reprocessOutput,
-										MaxLength:     100,
+									declarative.Composite{
+										Layout: declarative.Grid{MarginsZero: true, Columns: 2},
+										Children: []declarative.Widget{
+											declarative.Label{
+												Text:        "Title",
+												ToolTipText: "Title shown at the beginning of each list segment",
+											},
+											declarative.LineEdit{
+												Text:        declarative.Bind("FormatOptions.Title"),
+												ToolTipText: "Title shown at the beginning of each list segment",
+												MaxLength:   100,
+											},
+											declarative.Label{
+												Text:        "Combat Time",
+												ToolTipText: "Show combat time for each log",
+											},
+											declarative.CheckBox{
+												Checked:     declarative.Bind("FormatOptions.IncludeDuration"),
+												ToolTipText: "Show combat time for each log",
+											},
+										},
 									},
 								},
 							},
-							declarative.TextEdit{
+							declarative.GroupBox{
+								Title:         "4. Select Format and Copy",
+								Layout:        declarative.VBox{},
 								StretchFactor: 10,
-								AssignTo:      &outputTextArea,
-								Text:          "",
-								ReadOnly:      true,
-								HScroll:       true,
-								VScroll:       true,
+								Children: []declarative.Widget{
+									declarative.TabWidget{
+										StretchFactor: 10,
+										AssignTo:      &outputFormatTabs,
+										Pages: []declarative.TabPage{
+											declarative.TabPage{
+												Layout: declarative.VBox{},
+												Title:  "Discord",
+												Children: []declarative.Widget{
+													declarative.TextEdit{
+														StretchFactor: 10,
+														Text:          declarative.Bind("Results.Discord"),
+														ReadOnly:      true,
+														HScroll:       true,
+														VScroll:       true,
+													},
+												},
+											},
+											declarative.TabPage{
+												Layout: declarative.VBox{},
+												Title:  "Teamspeak",
+												Children: []declarative.Widget{
+													declarative.TextEdit{
+														StretchFactor: 10,
+														Text:          declarative.Bind("Results.Teamspeak"),
+														ReadOnly:      true,
+														HScroll:       true,
+														VScroll:       true,
+													},
+												},
+											},
+										},
+									},
+									declarative.Composite{
+										Layout: declarative.HBox{MarginsZero: true},
+
+										StretchFactor: 1,
+										Children: []declarative.Widget{
+											declarative.ProgressBar{
+												AssignTo: &prog,
+											},
+											declarative.PushButton{
+												AssignTo: &button,
+												Text:     "Copy to Clipboard",
+												OnClicked: func() {
+													go func() {
+														index := outputFormatTabs.CurrentIndex()
+														activePage := outputFormatTabs.Pages().At(index)
+														log.Debugf("Active Page: [%v] %v", index, activePage.Title())
+														utils.CopyToClipboard(activePage.Children().At(0).(*walk.TextEdit).Text())
+													}()
+												},
+												MinSize: declarative.Size{Width: 100},
+											},
+										},
+									},
+								},
 							},
 						},
-					},
-				},
-			},
-
-			declarative.Composite{
-				Layout: declarative.HBox{MarginsZero: true},
-
-				StretchFactor: 1,
-				Children: []declarative.Widget{
-					declarative.ProgressBar{
-						AssignTo: &prog,
-					},
-					declarative.PushButton{
-						AssignTo: &button,
-						Text:     "Copy to Clipboard",
-						OnClicked: func() {
-							go utils.CopyToClipboard(outputTextArea.Text())
-						},
-						MinSize: declarative.Size{Width: 150},
 					},
 				},
 			},
