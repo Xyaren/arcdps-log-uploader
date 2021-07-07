@@ -121,19 +121,20 @@ func generateMessageTextTeamspeak(entries []*model.ArcLog, formatOptions FormatO
 
 	var lines []string
 
+	const separator = " | "
 	for _, entry := range result {
 		output := ""
 		if len(dates) > 1 {
 			output += entry.encounterTime.Format("02.01.2006")
-			output += " | "
+			output += separator
 		}
 		output += entry.encounterTime.Format("15:04")
-		output += " | "
+		output += separator
 
 		if formatOptions.IncludeDuration {
 			out := time.Time{}.Add(time.Duration(entry.arcLog.Report.Encounter.Duration) * time.Second)
 			output += out.Format("04m 05s")
-			output += " | "
+			output += separator
 		}
 		output += entry.arcLog.Report.Permalink
 

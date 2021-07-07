@@ -65,7 +65,6 @@ func StartUI() error {
 	var tv *walk.TableView
 	var prog *walk.ProgressBar
 	var button *walk.PushButton
-	//var outputTitleLineEdit *walk.LineEdit
 	var tableModel *ArcLogModel
 	var db *walk.DataBinder
 	var versionLinkLabel *walk.LinkLabel
@@ -108,17 +107,6 @@ func StartUI() error {
 		},
 		Icon: 2,
 		Children: []declarative.Widget{
-			//declarative.Composite{
-			//	Layout:        declarative.VBox{MarginsZero: true, Spacing: 2},
-			//	StretchFactor: 0,
-			//	Name:          "Header",
-			//	Children: []declarative.Widget{
-			//		declarative.LinkLabel{Text: "1. Drop the arcdps log files into this window.- " +
-			//			"2. Wait until the logs are uploaded to <a href=\"https://dps.report/\">dps.report</a> - " +
-			//			"3. Optional: Deselect logs if desired. - " +
-			//			"4. Copy the Text from the right panel into discord.", OnLinkActivated: openLink},
-			//	},
-			//},
 			declarative.HSplitter{
 				StretchFactor: 150,
 				Children: []declarative.Widget{
@@ -412,8 +400,6 @@ func StartUI() error {
 							declarative.Label{Text: utils.Version(), Enabled: false},
 						},
 					},
-					// declarative.HSpacer{StretchFactor: 2},
-
 				},
 			},
 		},
