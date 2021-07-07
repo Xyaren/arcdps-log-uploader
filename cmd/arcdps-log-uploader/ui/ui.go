@@ -285,7 +285,7 @@ func StartUI() error {
 										StretchFactor: 10,
 										AssignTo:      &outputFormatTabs,
 										Pages: []declarative.TabPage{
-											declarative.TabPage{
+											{
 												Layout: declarative.VBox{},
 												Title:  "Discord",
 												Children: []declarative.Widget{
@@ -298,7 +298,7 @@ func StartUI() error {
 													},
 												},
 											},
-											declarative.TabPage{
+											{
 												Layout: declarative.VBox{},
 												Title:  "Teamspeak",
 												Children: []declarative.Widget{
