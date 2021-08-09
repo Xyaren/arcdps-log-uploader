@@ -3,15 +3,14 @@ module github.com/xyaren/arcdps-log-uploader
 go 1.16
 
 require (
-	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/josephspurrier/goversioninfo v1.2.0
 	github.com/lxn/walk v0.0.0-20210112085537-c389da54e794
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/sirupsen/logrus v1.8.1
+	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e // indirect
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
