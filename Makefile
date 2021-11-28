@@ -16,8 +16,7 @@ build_i386: install_build_dependencies
 
 .PHONY: install_build_dependencies
 install_build_dependencies:
-	echo None
-#	go get -d github.com/josephspurrier/goversioninfo/cmd/goversioninfo
+	go get -d github.com/josephspurrier/goversioninfo/cmd/goversioninfo
 
 .PHONY: generate
 generate: install_build_dependencies
