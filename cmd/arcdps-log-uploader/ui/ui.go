@@ -4,7 +4,6 @@ package ui
 import (
 	"context"
 	"fmt"
-	"github.com/lxn/win"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/lxn/walk"
 	"github.com/lxn/walk/declarative"
+	"github.com/lxn/win"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
 	log "github.com/sirupsen/logrus"
 	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/model"
