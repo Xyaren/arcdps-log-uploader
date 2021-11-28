@@ -3,13 +3,12 @@
 package main
 
 import (
-	"os"
-
 	"github.com/lxn/walk"
 	log "github.com/sirupsen/logrus"
 	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/model"
 	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/ui"
 	"github.com/xyaren/arcdps-log-uploader/cmd/arcdps-log-uploader/utils"
+	"golang.org/x/sys/windows"
 )
 
 func main() {
@@ -39,6 +38,25 @@ func start() {
 }
 
 func runningWithAdminPrivileges() bool {
-	_, err := os.Open("\\\\.\\PHYSICALDRIVE0")
-	return err == nil
+	var sid *windows.SID
+
+	// Although this looks scary, it is directly copied from the
+	// official windows documentation. The Go API for this is a
+	// direct wrap around the official C++ API.
+	// See https://docs.microsoft.com/en-us/windows/desktop/api/securitybaseapi/nf-securitybaseapi-checktokenmembership
+	err := windows.AllocateAndInitializeSid(
+		&windows.SECURITY_NT_AUTHORITY,
+		2,
+		windows.SECURITY_BUILTIN_DOMAIN_RID,
+		windows.DOMAIN_ALIAS_RID_ADMINS,
+		0, 0, 0, 0, 0, 0,
+		&sid)
+	if err != nil {
+		log.Fatalf("SID Error: %s", err)
+		return false
+	}
+
+	token := windows.Token(0)
+	isAdmin, _ := token.IsMember(sid)
+	return token.IsElevated() || isAdmin
 }
