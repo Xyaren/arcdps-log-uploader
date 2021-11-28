@@ -122,8 +122,7 @@ func StartUI() error {
 								Children: []declarative.Widget{
 									declarative.TextLabel{
 										Alignment: declarative.AlignHNearVNear,
-										Text: "Tip: If you are using Windows 10, I highly recommend enabling log compression in arcdps options.\n" +
-											"Hint: Due to rate limiting, bulk uploading 40 or more logs at once can take quite a while.",
+										Text:      "Note: Due to rate limiting, bulk uploading 40 or more logs at once can take quite a while.",
 									},
 									declarative.HSpacer{},
 									declarative.GroupBox{
