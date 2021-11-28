@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -141,7 +140,7 @@ func doRequestInternal(callback func(status LogStatus), path string, options *Up
 		logger.Errorf("dps.report responded with status %v (%v). Header: %v", res.StatusCode, res.Status, res.Header)
 		return nil, fmt.Errorf("upload failed: %v", res.Status)
 	}
-	responseBody, readErr := ioutil.ReadAll(res.Body)
+	responseBody, readErr := io.ReadAll(res.Body)
 	if readErr != nil {
 		logger.Fatal(readErr)
 	}
