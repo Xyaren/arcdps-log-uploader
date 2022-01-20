@@ -32,9 +32,6 @@ jobs:
       fail-fast: false
       matrix:
         language: [ 'go' ]
-    env:
-      GOOS: windows
-      GOARCH: amd64
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -73,3 +70,6 @@ jobs:
     
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
+      env:
+        GOOS: windows
+        GOARCH: amd64
