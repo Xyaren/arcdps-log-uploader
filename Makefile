@@ -17,7 +17,7 @@ build_i386: install_build_dependencies
 
 .PHONY: install_build_dependencies
 install_build_dependencies:
-	go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
+	go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
 
 .PHONY: generate
 generate: install_build_dependencies
