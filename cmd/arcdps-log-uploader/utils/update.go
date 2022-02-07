@@ -6,7 +6,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
 	"github.com/sirupsen/logrus"
 )
@@ -39,7 +39,7 @@ func CheckUpdate() (*selfupdate.Release, bool) {
 		return nil, true
 	}
 
-	if !found || latest.Version.LTE(v) {
+	if !found || semver.MustParse(latest.Version.String()).LTE(v) {
 		logrus.Println("Current version is the latest")
 		return nil, true
 	}
