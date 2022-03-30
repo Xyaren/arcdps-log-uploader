@@ -21,7 +21,7 @@ import (
 )
 
 type Encounter struct {
-	Duration int `json:"duration"`
+	Duration float64 `json:"duration"`
 }
 
 type DpsReportResponse struct {
