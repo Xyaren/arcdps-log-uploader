@@ -21,4 +21,4 @@ install_build_dependencies:
 
 .PHONY: generate
 generate: install_build_dependencies
-	go generate $(package)
+	GOOS=windows go generate $(package)
