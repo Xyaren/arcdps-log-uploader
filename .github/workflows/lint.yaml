@@ -34,7 +34,7 @@ jobs:
           # Path to your Revive config within the repo (optional)
           config: revive.toml
           # Exclude patterns, separated by semicolons (optional)
-          exclude: "cmd/arcdps-log-uploader/utils/versioninfo.go"
+          #exclude: "cmd/arcdps-log-uploader/utils/versioninfo.go"
           # Path pattern (default: ./...)
           #path: "./foo/..."
       - name: Lint with golangci-lint
@@ -46,7 +46,7 @@ jobs:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: latest
           #skip-go-installation: true
-          skip-pkg-cache: true
+          skip-cache: true
 
           # Optional: working directory, useful for monorepos
           # working-directory: somedir
