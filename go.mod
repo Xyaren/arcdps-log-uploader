@@ -4,17 +4,15 @@ go 1.17
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/josephspurrier/goversioninfo v1.4.0
 	github.com/lxn/walk v0.0.0-20210112085537-c389da54e794
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/rhysd/go-github-selfupdate v1.2.3
-	github.com/sirupsen/logrus v1.8.1
-	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881
+	github.com/sirupsen/logrus v1.9.0
+	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
 )
 
 require (
-	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-github/v30 v30.1.0 // indirect
