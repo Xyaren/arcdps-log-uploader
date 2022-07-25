@@ -34,7 +34,7 @@ jobs:
           # Path to your Revive config within the repo (optional)
           config: revive.toml
           # Exclude patterns, separated by semicolons (optional)
-          #exclude: "cmd/arcdps-log-uploader/utils/versioninfo.go"
+          exclude: "cmd/arcdps-log-uploader/utils/versioninfo.go"
           # Path pattern (default: ./...)
           #path: "./foo/..."
       - name: Lint with golangci-lint
