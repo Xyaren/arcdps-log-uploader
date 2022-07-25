@@ -2,11 +2,12 @@ package utils
 
 import (
 	"fmt"
-	"github.com/josephspurrier/goversioninfo"
-	"github.com/lxn/walk"
 	"os"
 	"os/exec"
 	"runtime"
+
+	"github.com/josephspurrier/goversioninfo"
+	"github.com/lxn/walk"
 
 	log "github.com/sirupsen/logrus"
 )
