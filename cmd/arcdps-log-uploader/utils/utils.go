@@ -6,7 +6,9 @@ import (
 	"os/exec"
 	"runtime"
 
+	"github.com/josephspurrier/goversioninfo"
 	"github.com/lxn/walk"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -41,5 +43,10 @@ func CopyToClipboard(text string) {
 }
 
 func Version() string {
-	return versionInfo.StringFileInfo.ProductVersion
+	info := VersionInfo()
+	return info.StringFileInfo.ProductVersion
+}
+
+func VersionInfo() goversioninfo.VersionInfo {
+	return versionInfo
 }

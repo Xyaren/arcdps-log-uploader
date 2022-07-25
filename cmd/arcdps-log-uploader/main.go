@@ -1,4 +1,5 @@
 //go:generate goversioninfo -gofile=utils/versioninfo.go -gofilepackage=utils ./_res/versioninfo.json
+//go:build (amd64 && 386) || windows
 
 package main
 

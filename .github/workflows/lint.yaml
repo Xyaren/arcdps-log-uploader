@@ -7,14 +7,14 @@ on:
 jobs:
   golangci:
     name: Lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       GO111MODULE: "on"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
-          go-version: '1.17' # The Go version to download (if necessary) and use.
+          go-version: '1.18' # The Go version to download (if necessary) and use.
       - uses: actions/cache@v3
         with:
           # In order:
@@ -45,8 +45,8 @@ jobs:
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: latest
-          skip-go-installation: true
-          skip-pkg-cache: true
+          #skip-go-installation: true
+          skip-cache: true
 
           # Optional: working directory, useful for monorepos
           # working-directory: somedir
