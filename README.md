@@ -16,7 +16,6 @@ resulting log links to [Discord](https://discord.com/).
 ### Download
 
 Downloadable binaries are available from the [Releases](https://github.com/Xyaren/arcdps-log-uploader/releases) page.
-> ⚠️ This Project is in an experimental stage. Expect bugs and program crashes.
 
 ### Special Thanks
 
