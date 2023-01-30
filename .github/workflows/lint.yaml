@@ -38,7 +38,7 @@ jobs:
           # Path pattern (default: ./...)
           #path: "./foo/..."
       - name: Lint with golangci-lint
-        uses: golangci/golangci-lint-action@v3.3.1
+        uses: golangci/golangci-lint-action@v3.4.0
         env:
           GOOS: windows
           GOARCH: amd64
