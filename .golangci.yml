@@ -13,7 +13,7 @@ linters-settings:
   #      - github.com/sirupsen/logrus: "logging is allowed only by logutils.Log"
   staticcheck:
     # Select the Go version to target. The default is '1.13'.
-    go: "1.19"
+    go: "1.20"
   dupl:
     threshold: 100
   funlen:
