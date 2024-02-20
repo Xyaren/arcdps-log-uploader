@@ -48,17 +48,19 @@ func generateMessageTextDiscord(entries []*model.ArcLog, formatOptions FormatOpt
 
 	for _, entry := range result {
 		output := ""
+		const tick = "`"
+		const space = " "
 		if len(dates) > 1 {
-			output += "`" + entry.encounterTime.Format("02.01.2006") + "`"
-			output += " "
+			output += tick + entry.encounterTime.Format("02.01.2006") + tick
+			output += space
 		}
-		output += "`" + entry.encounterTime.Format("15:04") + "`"
-		output += " "
+		output += tick + entry.encounterTime.Format("15:04") + tick
+		output += space
 
 		if formatOptions.IncludeDuration {
 			out := time.Time{}.Add(time.Duration(entry.arcLog.Report.Encounter.Duration) * time.Second)
-			output += "`" + out.Format("04m 05s") + "`"
-			output += " "
+			output += tick + out.Format("04m 05s") + tick
+			output += space
 		}
 
 		output += "<"
@@ -73,10 +75,11 @@ func generateMessageTextDiscord(entries []*model.ArcLog, formatOptions FormatOpt
 	var messages []string
 	var currentMessage = ""
 	for _, line := range lines {
-		var currentMessagePlusThisLine = currentMessage + "\r\n" + line
+		const linebreak = "\r\n"
+		var currentMessagePlusThisLine = currentMessage + linebreak + line
 		if len(currentMessagePlusThisLine) > (2000 - len(headline) - 10) {
 			messages = append(messages, currentMessage)
-			currentMessage = "\r\n" + line
+			currentMessage = linebreak + line
 		} else {
 			currentMessage = currentMessagePlusThisLine
 		}
@@ -147,10 +150,11 @@ func generateMessageTextTeamspeak(entries []*model.ArcLog, formatOptions FormatO
 	var messages []string
 	var currentMessage = ""
 	for _, line := range lines {
-		var currentMessagePlusThisLine = currentMessage + "\r\n" + line
+		const linebreak = "\r\n"
+		var currentMessagePlusThisLine = currentMessage + linebreak + line
 		if len(currentMessagePlusThisLine) > (10000 - len(headline) - 10) {
 			messages = append(messages, currentMessage)
-			currentMessage = "\r\n" + line
+			currentMessage = linebreak + line
 		} else {
 			currentMessage = currentMessagePlusThisLine
 		}
