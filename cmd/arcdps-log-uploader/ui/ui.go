@@ -448,7 +448,7 @@ func shouldRetryBeAllowed(tv *walk.TableView, m *ArcLogModel) bool {
 func checkBrowsable(tv *walk.TableView, m *ArcLogModel) bool {
 	if len(tv.SelectedIndexes()) == 1 {
 		arcLog := m.items[tv.SelectedIndexes()[0]]
-		if arcLog.Status == model.Done && arcLog.Report != nil && len(arcLog.Report.Permalink) > 0 {
+		if arcLog.Status == model.Done && arcLog.Report != nil && arcLog.Report.Permalink != "" {
 			return true
 		}
 	}

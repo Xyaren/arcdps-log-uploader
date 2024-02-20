@@ -84,7 +84,7 @@ func generateMessageTextDiscord(entries []*model.ArcLog, formatOptions FormatOpt
 			currentMessage = currentMessagePlusThisLine
 		}
 	}
-	if len(currentMessage) > 0 {
+	if currentMessage != "" {
 		messages = append(messages, currentMessage)
 	}
 
@@ -159,7 +159,7 @@ func generateMessageTextTeamspeak(entries []*model.ArcLog, formatOptions FormatO
 			currentMessage = currentMessagePlusThisLine
 		}
 	}
-	if len(currentMessage) > 0 {
+	if currentMessage != "" {
 		messages = append(messages, currentMessage)
 	}
 
@@ -177,7 +177,7 @@ func generateMessageTextTeamspeak(entries []*model.ArcLog, formatOptions FormatO
 func headline(title string, dateTime time.Time, multipleDays bool) string {
 	var elements = make([]string, 0)
 	trimmedTitle := strings.TrimSpace(title)
-	if len(trimmedTitle) > 0 {
+	if trimmedTitle != "" {
 		elements = append(elements, trimmedTitle)
 	}
 
@@ -185,13 +185,14 @@ func headline(title string, dateTime time.Time, multipleDays bool) string {
 		elements = append(elements, dateTime.Format("02.01.2006"))
 	}
 
-	return "**" + strings.Join(elements, " ") + "**"
+	const bold = "**"
+	return bold + strings.Join(elements, " ") + bold
 }
 
 func headlineTeamspeak(title string, dateTime time.Time, multipleDays bool) string {
 	var elements = make([]string, 0)
 	trimmedTitle := strings.TrimSpace(title)
-	if len(trimmedTitle) > 0 {
+	if trimmedTitle != "" {
 		elements = append(elements, trimmedTitle)
 	}
 

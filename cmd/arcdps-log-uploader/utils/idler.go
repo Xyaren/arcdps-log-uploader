@@ -23,7 +23,7 @@ func (i *Idler) Call() {
 	defer i.mu.Unlock()
 
 	now := time.Now()
-	if !i.lastInvocation.Add(i.idleTimeout).After(now) { //nolint:gocritic
+	if !i.lastInvocation.Add(i.idleTimeout).After(now) {
 		i.lastInvocation = now
 
 		go i.invoke()
