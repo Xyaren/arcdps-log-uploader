@@ -1,6 +1,6 @@
 module github.com/xyaren/arcdps-log-uploader
 
-go 1.22
+go 1.25.0
 
 require (
 	github.com/blang/semver/v4 v4.0.0
@@ -9,7 +9,7 @@ require (
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/sys v0.26.0
+	golang.org/x/sys v0.45.0
 	golang.org/x/time v0.5.0
 )
 
@@ -22,8 +22,8 @@ require (
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf // indirect
 	github.com/tcnksm/go-gitconfig v0.1.2 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
-	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
+	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
